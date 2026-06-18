@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
@@ -28,9 +28,32 @@ const QUICK_ACTIONS = [
 
 import { useAnnouncements } from "../../lib/hooks/useAnnouncements";
 import { useSubscription } from "../../lib/hooks/useSubscription";
+import { AggregateCalculatorPage } from "./AggregateCalculatorPage";
+import { CutOffMarksPage } from "./CutOffMarksPage";
+import { AnalyticsPage } from "./AnalyticsPage";
+import { BookmarksPage } from "./BookmarksPage";
+
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "calculator", label: "Calculator" },
+  { id: "cutoffs", label: "Cut-Off Marks" },
+  { id: "analytics", label: "Analytics" },
+  { id: "bookmarks", label: "Saved Questions" }
+];
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "overview";
+
+  const setActiveTab = (tab: string) => {
+    if (tab === "overview") {
+      setSearchParams({});
+    } else {
+      setSearchParams({ tab });
+    }
+  };
+
   const { profile, loading: authLoading } = useAuth();
   const { data: stats, isLoading: statsLoading } = useUserStats();
   const { data: sessions, isLoading: sessionsLoading } = useExamSessions(5);
@@ -152,12 +175,36 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-[#08142D] px-4 py-6 sm:px-6 md:px-8">
       <div className="max-w-5xl mx-auto">
-        {/* Welcome Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
+        {/* Horizontal Navigation Tabs */}
+        <div className="border-b border-white/6 mb-8 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] sticky top-0 bg-[#08142D]/90 backdrop-blur-md z-30 -mx-4 px-4 sm:mx-0 sm:px-0 py-2.5">
+          <div className="flex gap-2 min-w-max">
+            {TABS.map((tab) => {
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all relative ${
+                    active
+                      ? "text-white bg-[#2563EB]/20 border border-[#2563EB]/40 shadow-lg shadow-blue-500/10"
+                      : "text-[#64748B] hover:text-[#94A3B8] hover:bg-white/5 border border-transparent"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {activeTab === "overview" && (
+          <>
+            {/* Welcome Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8"
+            >
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[#60A5FA] text-sm font-semibold mb-1">Good morning,</p>
@@ -232,7 +279,19 @@ export function Dashboard() {
             {QUICK_ACTIONS.map((action, i) => (
               <button
                 key={i}
-                onClick={() => navigate(action.path)}
+                onClick={() => {
+                  if (action.path === "/aggregate-calculator") {
+                    setActiveTab("calculator");
+                  } else if (action.path === "/cut-offs") {
+                    setActiveTab("cutoffs");
+                  } else if (action.path === "/analytics") {
+                    setActiveTab("analytics");
+                  } else if (action.path === "/bookmarks") {
+                    setActiveTab("bookmarks");
+                  } else {
+                    navigate(action.path);
+                  }
+                }}
                 className="group bg-[#0F172A] border border-white/6 rounded-2xl p-4 text-left hover:border-white/12 hover:-translate-y-1 transition-all"
               >
                 <div
@@ -517,8 +576,14 @@ export function Dashboard() {
               <div className="text-[#64748B] text-sm text-center py-4">No data yet — be the first!</div>
             )}
           </div>
-        </motion.div>
+         </motion.div>
+          </>
+        )}
 
+        {activeTab === "calculator" && <AggregateCalculatorPage />}
+        {activeTab === "cutoffs" && <CutOffMarksPage />}
+        {activeTab === "analytics" && <AnalyticsPage />}
+        {activeTab === "bookmarks" && <BookmarksPage />}
       </div>
     </div>
   );
