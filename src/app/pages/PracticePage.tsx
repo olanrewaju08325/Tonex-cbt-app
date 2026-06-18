@@ -9,6 +9,7 @@ import { useUniversities } from "../../lib/hooks/useUniversities";
 import { useSubjects } from "../../lib/hooks/useSubjects";
 import { useDailyLimit } from "../../lib/hooks/useDailyLimit";
 import { useAuth } from "../../contexts/AuthContext";
+import { useSubscription } from "../../lib/hooks/useSubscription";
 import { Skeleton } from "../components/ui/skeleton";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -44,6 +45,15 @@ export function PracticePage() {
   // Offline sync states
   const [downloadingOffline, setDownloadingOffline] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+
+  const { data: activeSub } = useSubscription();
+  const canDownloadOffline = profile?.is_premium && (
+    activeSub?.plan === 'quarterly' ||
+    activeSub?.plan === 'yearly' ||
+    activeSub?.plan === 'manual' ||
+    profile?.role === 'admin' ||
+    profile?.role === 'superadmin'
+  );
   
   // Query practiced subjects for 4-subject free tier limit
   const { data: activeSubjectIds = [] } = useQuery({
@@ -504,7 +514,20 @@ export function PracticePage() {
                 </div>
               </div>
 
-              {downloadingOffline ? (
+              {!canDownloadOffline ? (
+                <div className="space-y-3 mt-2">
+                  <p className="text-[#94A3B8] text-xs leading-relaxed">
+                    Offline question downloads are available on Quarterly & Yearly plans (₦6,500+). Upgrade your plan to study offline.
+                  </p>
+                  <button
+                    onClick={() => navigate("/subscription")}
+                    className="w-full flex items-center justify-center gap-2 bg-[#F59E0B]/20 hover:bg-[#F59E0B]/35 text-[#FBBF24] border border-[#F59E0B]/30 hover:border-[#F59E0B]/50 py-2.5 rounded-xl text-xs font-bold transition-all"
+                  >
+                    <Lock size={12} />
+                    Upgrade for Offline Mode
+                  </button>
+                </div>
+              ) : downloadingOffline ? (
                 <div className="space-y-2">
                   <div className="bg-[#1E293B] rounded-full h-1.5 overflow-hidden">
                     <div className="bg-[#2563EB] h-full transition-all" style={{ width: `${downloadProgress}%` }} />
