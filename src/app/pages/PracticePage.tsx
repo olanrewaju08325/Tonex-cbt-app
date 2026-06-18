@@ -517,14 +517,32 @@ export function PracticePage() {
               {!canDownloadOffline ? (
                 <div className="space-y-3 mt-2">
                   <p className="text-[#94A3B8] text-xs leading-relaxed">
-                    Offline question downloads are available on Quarterly & Yearly plans (₦6,500+). Upgrade your plan to study offline.
+                    Offline question downloads are available on Quarterly & Yearly plans (₦6,500+). You are currently on the Monthly plan.
                   </p>
+                  <div className="bg-[#1E293B]/60 rounded-xl p-3 border border-[#334155]/50 space-y-2">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-[#94A3B8]">Paid amount (Monthly):</span>
+                      <span className="text-white font-semibold">₦{(activeSub?.amount || 2500).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-[#94A3B8]">Quarterly Upgrade Balance:</span>
+                      <span className="text-[#FBBF24] font-bold">₦{Math.max(0, 6500 - (activeSub?.amount || 2500)).toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-[#94A3B8] leading-relaxed space-y-1 bg-[#1E293B]/30 p-2.5 rounded-lg border border-[#334155]/30">
+                    <span className="text-white font-semibold text-xs block mb-1">🎁 Premium Perks on ₦6,500+ Plans:</span>
+                    <ul className="list-disc list-inside mt-1 space-y-1 pl-0.5">
+                      <li><strong className="text-white">Offline Practice Mode</strong>: Download questions & subjects to study completely offline.</li>
+                      <li><strong className="text-white">Priority Support</strong>: Direct fast-track WhatsApp query resolutions with support managers.</li>
+                      <li><strong className="text-white">Performance Coaching</strong>: Scheduled 1-on-1 calls with CBT tutors to improve weak subjects.</li>
+                    </ul>
+                  </div>
                   <button
                     onClick={() => navigate("/subscription")}
-                    className="w-full flex items-center justify-center gap-2 bg-[#F59E0B]/20 hover:bg-[#F59E0B]/35 text-[#FBBF24] border border-[#F59E0B]/30 hover:border-[#F59E0B]/50 py-2.5 rounded-xl text-xs font-bold transition-all"
+                    className="w-full flex items-center justify-center gap-2 bg-[#F59E0B]/20 hover:bg-[#F59E0B]/35 text-[#FBBF24] border border-[#F59E0B]/30 hover:border-[#F59E0B]/50 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
                     <Lock size={12} />
-                    Upgrade for Offline Mode
+                    Upgrade for ₦{Math.max(0, 6500 - (activeSub?.amount || 2500)).toLocaleString()}
                   </button>
                 </div>
               ) : downloadingOffline ? (
