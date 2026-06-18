@@ -30,6 +30,37 @@ import { FlaggedQuestionsView } from "../components/admin/FlaggedQuestionsView";
 import { AdminLogsView } from "../components/admin/AdminLogsView";
 import { FlashcardsView } from "../components/admin/FlashcardsView";
 
+interface AdminUser {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string;
+  is_premium: boolean;
+  is_blocked: boolean;
+  created_at: string;
+  streak_count: number | null;
+  target_university_id: string | null;
+  universities?: {
+    short_name: string;
+    name: string;
+  } | null;
+  subscription_plan?: string | null;
+}
+
+interface AdminQuestion {
+  id: string;
+  text: string;
+  year: number | null;
+  is_published: boolean;
+  correct_answer: string;
+  subjects?: {
+    name: string;
+  } | null;
+  universities?: {
+    short_name: string;
+  } | null;
+}
+
 // Helper: log admin actions
 async function logAdminAction(adminId: string, action: string, details?: object) {
   await supabase.from("admin_logs").insert({ admin_id: adminId, action, details });
@@ -64,7 +95,16 @@ const GROWTH_DATA = [
   { month: "Mar", users: 3600, revenue: 6800000 },
 ];
 
-function StatCard({ label, value, icon: Icon, color, change, loading }: any) {
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  icon: React.ComponentType<{ size: number; className?: string }>;
+  color: string;
+  change: string;
+  loading?: boolean;
+}
+
+function StatCard({ label, value, icon: Icon, color, change, loading }: StatCardProps) {
   if (loading) return <Skeleton className="h-24 rounded-xl bg-[#0F1F35]" />;
   return (
     <div className="bg-[#0F1F35] border border-white/5 rounded-xl p-5">
@@ -137,7 +177,7 @@ function DashboardView() {
                 </tr>
               </thead>
               <tbody>
-                {displayUsers.map((u: any) => (
+                {displayUsers.map((u: AdminUser) => (
                   <tr key={u.id} className="border-b border-white/3 hover:bg-white/2 transition-colors">
                     <td className="py-3 pr-4 text-white font-medium">{u.full_name || "—"}</td>
                     <td className="py-3 pr-4 text-[#64748B]">{u.email}</td>
@@ -170,7 +210,7 @@ function QuestionsView() {
   const { data: universities } = useUniversities();
   const qc = useQueryClient();
 
-  const filtered = (questions || []).filter((q: any) =>
+  const filtered = (questions || []).filter((q: AdminQuestion) =>
     q.text.toLowerCase().includes(search.toLowerCase()) ||
     q.subjects?.name?.toLowerCase().includes(search.toLowerCase())
   );
@@ -231,12 +271,12 @@ function QuestionsView() {
         <div className="space-y-3">{Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl bg-[#0F1F35]" />)}</div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((q: any) => (
+          {filtered.map((q: AdminQuestion) => (
             <div key={q.id} className="bg-[#0F1F35] border border-white/5 rounded-xl p-4 flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="bg-[#2563EB]/20 text-[#60A5FA] text-xs font-semibold px-2 py-0.5 rounded">{(q.subjects as any)?.name}</span>
-                  {(q.universities as any)?.short_name && <span className="bg-[#1E293B] text-[#64748B] text-xs px-2 py-0.5 rounded">{(q.universities as any).short_name}</span>}
+                  <span className="bg-[#2563EB]/20 text-[#60A5FA] text-xs font-semibold px-2 py-0.5 rounded">{q.subjects?.name}</span>
+                  {q.universities?.short_name && <span className="bg-[#1E293B] text-[#64748B] text-xs px-2 py-0.5 rounded">{q.universities.short_name}</span>}
                   {q.year && <span className="text-[#475569] text-xs">{q.year}</span>}
                   <span className={`text-xs px-2 py-0.5 rounded-full ml-auto ${q.is_published ? "bg-[#22C55E]/15 text-[#22C55E]" : "bg-[#F59E0B]/15 text-[#F59E0B]"}`}>
                     {q.is_published ? "published" : "draft"}
@@ -339,7 +379,7 @@ function UsersView() {
   const { data: users, isLoading, refetch } = useAdminUsers();
   const qc = useQueryClient();
 
-  const filtered = (users || []).filter((u: any) => {
+  const filtered = (users || []).filter((u: AdminUser) => {
     const q = search.toLowerCase();
     const matchSearch = !q ||
       (u.full_name || "").toLowerCase().includes(q) ||
@@ -403,8 +443,8 @@ function UsersView() {
   };
 
   const totalUsers = users?.length || 0;
-  const premiumCount = (users || []).filter((u: any) => u.is_premium).length;
-  const blockedCount = (users || []).filter((u: any) => u.is_blocked).length;
+  const premiumCount = (users || []).filter((u: AdminUser) => u.is_premium).length;
+  const blockedCount = (users || []).filter((u: AdminUser) => u.is_blocked).length;
 
   return (
     <div>
@@ -447,7 +487,7 @@ function UsersView() {
         <div className="space-y-2">{Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl bg-[#0F1F35]" />)}</div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((u: any) => (
+          {filtered.map((u: AdminUser) => (
             <div key={u.id} className={`bg-[#0F1F35] border rounded-2xl p-4 flex items-center gap-4 transition-all ${u.is_blocked ? "border-red-500/20 opacity-60" : "border-white/5"}`}>
               {/* Avatar */}
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 ${
@@ -472,8 +512,8 @@ function UsersView() {
                 </div>
                 <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                   <span className="text-[#64748B] text-xs">{u.email}</span>
-                  {(u.universities as any)?.short_name && (
-                    <span className="text-[#475569] text-xs">{(u.universities as any).short_name}</span>
+                  {u.universities?.short_name && (
+                    <span className="text-[#475569] text-xs">{u.universities.short_name}</span>
                   )}
                   <span className="text-[#475569] text-xs">🔥 {u.streak_count || 0} streak</span>
                   <span className="text-[#475569] text-xs">Joined {new Date(u.created_at).toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"2-digit" })}</span>

@@ -9,6 +9,7 @@ import { useNavigate, useLocation } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { useCreateSubscription } from "../../lib/hooks/useSubscription";
 import { BANK_DETAILS } from "../../lib/manualPayment";
+import { supabase } from "../../lib/supabase";
 
 const PLANS = [
   {
@@ -83,6 +84,8 @@ export function PremiumPage() {
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "quarterly" | "yearly">(initialPlan);
   const [reference, setReference] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const { user, profile } = useAuth();
   const { mutateAsync: createSubscription } = useCreateSubscription();
 
@@ -95,18 +98,72 @@ export function PremiumPage() {
     toast.success(`${label} copied to clipboard`);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    // Check type
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "application/pdf"];
+    if (!allowedTypes.includes(selectedFile.type)) {
+      toast.error("Only PNG, JPEG, JPG, and PDF files are allowed");
+      e.target.value = "";
+      setFile(null);
+      return;
+    }
+
+    // Check size (2MB)
+    if (selectedFile.size > 2 * 1024 * 1024) {
+      toast.error("File size must be less than 2MB");
+      e.target.value = "";
+      setFile(null);
+      return;
+    }
+
+    setFile(selectedFile);
+  };
+
   const handleSubmitReference = async () => {
     if (!reference.trim()) {
       toast.error("Please enter your transfer reference number");
       return;
     }
+    if (!file) {
+      toast.error("Please select a file containing your payment proof receipt");
+      return;
+    }
     setSubmitting(true);
+    setUploadProgress(15);
     try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id || 'unknown'}_${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('receipt upload')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      setUploadProgress(75);
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('receipt upload')
+        .getPublicUrl(fileName);
+
+      setUploadProgress(95);
+
       await createSubscription({
         plan: selectedPlan,
         amount: plan.priceValue,
         payment_reference: reference.trim(),
+        payment_proof_url: publicUrl,
       });
+
+      setUploadProgress(100);
 
       const message = encodeURIComponent(
         `Hello, I just made a payment for Tonex CBT ${plan.name} plan (₦${plan.priceValue.toLocaleString()}).\n\nName: ${profile?.full_name}\nEmail: ${user?.email}\nTransfer Reference: ${reference.trim()}\n\nPlease activate my account. Thank you.`
@@ -118,6 +175,7 @@ export function PremiumPage() {
       toast.error(err.message || "Failed to submit. Please try again.");
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -347,6 +405,45 @@ export function PremiumPage() {
                     </p>
                   </div>
 
+                  <div>
+                    <label className="block text-[#94A3B8] text-xs font-semibold mb-2 uppercase tracking-wide">
+                      Upload Receipt Proof (Max 2MB, PDF/PNG/JPEG)
+                    </label>
+                    <div className="relative border-2 border-dashed border-white/6 hover:border-white/12 rounded-xl p-4 flex flex-col items-center justify-center bg-[#1E293B]/40 hover:bg-[#1E293B]/60 transition-all cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/jpg, application/pdf"
+                        onChange={handleFileChange}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        disabled={submitting}
+                      />
+                      <Crown size={24} className="text-[#60A5FA] mb-2" />
+                      <span className="text-white text-xs font-semibold text-center">
+                        {file ? file.name : "Click to select PNG, JPEG, JPG, or PDF"}
+                      </span>
+                      {file && (
+                        <span className="text-[#64748B] text-[10px] mt-1">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB — click to replace
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {uploadProgress !== null && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-[#94A3B8]">
+                        <span>Uploading receipt...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-[#1E293B] rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-[#2563EB] h-1.5 rounded-full transition-all duration-150"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-[#1E293B]/60 rounded-xl p-4">
                     <div className="text-[#475569] text-xs mb-2">Payment Summary</div>
                     <div className="flex justify-between">
@@ -359,7 +456,7 @@ export function PremiumPage() {
 
               <button
                 onClick={handleSubmitReference}
-                disabled={submitting || !reference.trim()}
+                disabled={submitting || !reference.trim() || !file}
                 className="w-full bg-gradient-to-r from-[#2563EB] to-[#0B3D91] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-1 disabled:opacity-60 disabled:cursor-not-allowed text-base mb-4"
               >
                 {submitting ? (

@@ -30,7 +30,7 @@ export function useCreateSubscription() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ plan, amount, payment_reference }: { plan: SubscriptionPlan, amount: number, payment_reference: string }) => {
+    mutationFn: async ({ plan, amount, payment_reference, payment_proof_url }: { plan: SubscriptionPlan, amount: number, payment_reference: string, payment_proof_url?: string }) => {
       if (!user) throw new Error('Not authenticated');
       
       const { data, error } = await supabase
@@ -40,6 +40,7 @@ export function useCreateSubscription() {
           plan,
           amount,
           payment_reference,
+          payment_proof_url: payment_proof_url || null,
           status: 'pending',
           starts_at: new Date().toISOString(),
           // expires_at will be set when admin approves and changes status to active, 

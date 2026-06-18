@@ -34,6 +34,7 @@ interface Subscription {
   plan: string;
   amount: number;
   payment_reference: string | null;
+  payment_proof_url: string | null;
   status: string;
   admin_notes: string | null;
   created_at: string;
@@ -323,6 +324,28 @@ export function ManualSubscriptionsView() {
                             </div>
                           ))}
                         </div>
+
+                        {sub.payment_proof_url && (
+                          <div className="bg-[#1E293B]/40 border border-white/5 rounded-xl p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-[#2563EB]/10 flex items-center justify-center text-[#60A5FA]">
+                                <FileText size={18} />
+                              </div>
+                              <div>
+                                <h4 className="text-white font-bold text-sm">Payment Receipt Attached</h4>
+                                <p className="text-[#64748B] text-xs">Verify receipt proof from storage</p>
+                              </div>
+                            </div>
+                            <a
+                              href={sub.payment_proof_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-blue-500/10 flex items-center gap-1"
+                            >
+                              <ArrowUpRight size={14} /> View Receipt
+                            </a>
+                          </div>
+                        )}
 
                         {/* Admin notes */}
                         <div>

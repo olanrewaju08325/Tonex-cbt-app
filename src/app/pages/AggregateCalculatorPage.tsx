@@ -84,6 +84,18 @@ export function AggregateCalculatorPage() {
     }
   });
 
+  // Fetch university exam config weights dynamically
+  const { data: examConfigs = [] } = useQuery<any[]>({
+    queryKey: ["university-exam-configs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("university_exam_configs")
+        .select("*");
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   // Automatically load the student's target university and average mock score
   const { data: averageMockScore } = useQuery<number | null>({
     queryKey: ["avg-post-utme-score", profile?.id],
@@ -111,26 +123,33 @@ export function AggregateCalculatorPage() {
   }, [profile, averageMockScore]);
 
   const activeUni = universities.find(u => u.id === targetUniId);
+  const activeConfig = examConfigs.find(c => c.university_id === targetUniId);
+
+  // Derived configuration settings with default fallback parameters
+  const jambWeight = activeConfig ? Number(activeConfig.jamb_weight_percentage) : 0.50;
+  const postUtmeWeight = activeConfig ? Number(activeConfig.post_utme_weight_percentage) : 0.50;
+  const olevelWeight = activeConfig ? Number(activeConfig.olevel_weight_percentage) : 0.00;
+  const olevelPointsSystem = activeConfig ? activeConfig.olevel_points_system : "none";
+  const allowDoubleSitting = activeConfig ? activeConfig.allow_double_sitting : true;
 
   // Grade point calculations
   const calculateOLevelScore = () => {
     if (!activeUni) return 0;
-    const uniCode = activeUni.short_name.toUpperCase();
     
-    // UI & UNIBEN don't use O'Level directly in aggregate
-    if (uniCode === "UI" || uniCode === "UNIBEN") {
+    // O'Level points system check
+    if (olevelPointsSystem === "none") {
       return 0;
+    }
+
+    if (sittingMode === "double" && !allowDoubleSitting) {
+      return -1; // double sittings are rejected!
     }
 
     // Get combined list of subject-grade values
     const list1 = sitting1.filter(item => item.subject !== "");
     const list2 = sitting2.filter(item => item.subject !== "");
 
-    if (uniCode === "UNILAG") {
-      if (sittingMode === "double") {
-        return -1; // UNILAG does not accept double sitting
-      }
-      
+    if (olevelPointsSystem === "unilag") {
       // Calculate UNILAG O'Level points (max 20)
       let score = 0;
       sitting1.forEach(item => {
@@ -141,7 +160,7 @@ export function AggregateCalculatorPage() {
       return score;
     }
 
-    if (uniCode === "OAU") {
+    if (olevelPointsSystem === "oau") {
       // Find best grade for each subject across sittings
       const subjectMap: Record<string, string> = {};
       
@@ -203,37 +222,14 @@ export function AggregateCalculatorPage() {
     const oLevel = calculateOLevelScore();
 
     if (!activeUni) return 0;
-    const uniCode = activeUni.short_name.toUpperCase();
-
     if (jamb > 400 || postUtme > 100) return 0;
+    if (oLevel === -1) return 0; // Double sitting rejected
 
-    if (uniCode === "UNILAG") {
-      if (sittingMode === "double") return 0;
-      // Formula: O'Level Points (max 20) + (JAMB / 8) (max 50) + (Post-UTME / 100 * 30) (max 30) = 100%
-      const jambPart = jamb / 8;
-      const postUtmePart = (postUtme / 100) * 30;
-      return oLevel + jambPart + postUtmePart;
-    }
+    const jambPart = (jamb / 400) * 100 * jambWeight;
+    const postUtmePart = (postUtme / 100) * 100 * postUtmeWeight;
+    const oLevelPart = oLevel; // Raw O'Level points scale directly into aggregate points
 
-    if (uniCode === "UI") {
-      // Formula: (JAMB / 8) + (Post-UTME / 2) = 100% (Post-UTME is out of 100)
-      return (jamb / 8) + (postUtme / 2);
-    }
-
-    if (uniCode === "OAU") {
-      // Formula: O'Level Points (max 40) + (JAMB / 8) (max 50) + (Post-UTME / 100 * 10) (max 10) = 100%
-      const jambPart = jamb / 8;
-      const postUtmePart = (postUtme / 100) * 10;
-      return oLevel + jambPart + postUtmePart;
-    }
-
-    if (uniCode === "UNIBEN") {
-      // Formula: (JAMB / 8) + (Post-UTME / 2) = 100%
-      return (jamb / 8) + (postUtme / 2);
-    }
-
-    // Default general fallback formula: (JAMB / 8) + (Post-UTME / 2)
-    return (jamb / 8) + (postUtme / 2);
+    return jambPart + postUtmePart + oLevelPart;
   };
 
   const finalAggregate = calculateFinalAggregate();
@@ -250,17 +246,9 @@ export function AggregateCalculatorPage() {
 
   const getUpgradeTip = () => {
     if (!activeUni) return "";
-    const uniCode = activeUni.short_name.toUpperCase();
-    if (uniCode === "UNILAG") {
-      return "UNILAG Aggregate = O'Level (20 pts) + JAMB/8 (50 pts) + Post-UTME/100*30 (30 pts). Max score is 100%. Double sittings are rejected.";
-    }
-    if (uniCode === "UI") {
-      return "UI Aggregate = JAMB/8 (50 pts) + Post-UTME/2 (50 pts). O'Level points are only used for general clearance, not aggregate.";
-    }
-    if (uniCode === "OAU") {
-      return "OAU Aggregate = O'Level (40 pts) + JAMB/8 (50 pts) + Post-UTME/10 (10 pts). Double sittings are penalized by -2 points.";
-    }
-    return "Standard Aggregate Formula = JAMB/8 (50%) + Post-UTME/2 (50%).";
+    return `${activeUni.short_name} Aggregate = JAMB (${(jambWeight * 100).toFixed(0)}%) + Post-UTME (${(postUtmeWeight * 100).toFixed(0)}%)` + 
+      (olevelPointsSystem !== "none" ? ` + O'Level (${(olevelWeight * 100).toFixed(0)}%)` : "") + 
+      (allowDoubleSitting ? " · Double sittings allowed" : " · Double sittings rejected");
   };
 
   return (
@@ -345,14 +333,14 @@ export function AggregateCalculatorPage() {
                   </button>
                   <button
                     onClick={() => {
-                      if (activeUni?.short_name.toUpperCase() === "UNILAG") {
-                        toast.error("UNILAG does not accept double sitting!");
+                      if (!allowDoubleSitting) {
+                        toast.error(`${activeUni?.short_name || "This university"} does not accept double sittings!`);
                         return;
                       }
                       setSittingMode("double");
                     }}
                     className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                      activeUni?.short_name.toUpperCase() === "UNILAG" ? "opacity-30 cursor-not-allowed" : ""
+                      !allowDoubleSitting ? "opacity-30 cursor-not-allowed" : ""
                     } ${sittingMode === "double" ? "bg-[#2563EB] text-white" : "text-[#94A3B8] hover:text-white"}`}
                   >
                     Double Sitting
@@ -363,7 +351,7 @@ export function AggregateCalculatorPage() {
           </div>
 
           {/* O'Level Grade Inputs */}
-          {activeUni && activeUni.short_name.toUpperCase() !== "UI" && activeUni.short_name.toUpperCase() !== "UNIBEN" && (
+          {activeUni && olevelPointsSystem !== "none" && (
             <div className="bg-[#0F172A] border border-white/5 rounded-2xl p-6 space-y-5 shadow-xl">
               <h2 className="text-white font-bold text-base border-b border-white/5 pb-3 flex items-center justify-between">
                 <span className="flex items-center gap-2">
@@ -483,15 +471,15 @@ export function AggregateCalculatorPage() {
                   <div>
                     <span className="text-[#94A3B8] text-[10px] uppercase font-bold block">O'Level Points</span>
                     <span className="text-white font-extrabold text-sm">
-                      {activeUni.short_name.toUpperCase() === "UI" || activeUni.short_name.toUpperCase() === "UNIBEN"
+                      {olevelPointsSystem === "none"
                         ? "Not Used"
-                        : `${oLevelPoints.toFixed(1)} / ${activeUni.short_name.toUpperCase() === "UNILAG" ? "20.0" : "40.0"}`}
+                        : `${oLevelPoints.toFixed(1)} / ${olevelPointsSystem === "unilag" ? "20.0" : "40.0"}`}
                     </span>
                   </div>
                   <div>
                     <span className="text-[#94A3B8] text-[10px] uppercase font-bold block">JAMB (Weighted)</span>
                     <span className="text-white font-extrabold text-sm">
-                      {jambScore ? `${(parseFloat(jambScore) / 8).toFixed(2)} / 50.0` : "0.00"}
+                      {jambScore ? `${((parseFloat(jambScore) / 400) * 100 * jambWeight).toFixed(2)} / ${(jambWeight * 100).toFixed(1)}` : "0.00"}
                     </span>
                   </div>
                 </div>

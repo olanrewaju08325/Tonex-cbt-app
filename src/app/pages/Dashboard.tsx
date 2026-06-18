@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   BookOpen, BarChart2, RotateCcw, Trophy, Crown, Clock,
@@ -32,24 +33,116 @@ export function Dashboard() {
   const { data: topStudents, isLoading: leaderboardLoading } = useLeaderboard(profile?.target_university_id);
   const { data: subscription } = useSubscription();
 
+  // LocalStorage Cache fallbacks
+  const [cachedStats, setCachedStats] = useState<any>(() => {
+    try {
+      const stored = localStorage.getItem("tonex_cache_stats");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [cachedSessions, setCachedSessions] = useState<any[]>(() => {
+    try {
+      const stored = localStorage.getItem("tonex_cache_sessions");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [cachedAnnouncements, setCachedAnnouncements] = useState<any[]>(() => {
+    try {
+      const stored = localStorage.getItem("tonex_cache_announcements");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [cachedTopStudents, setCachedTopStudents] = useState<any[]>(() => {
+    try {
+      const stored = localStorage.getItem("tonex_cache_top_students");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [cachedSubscription, setCachedSubscription] = useState<any>(() => {
+    try {
+      const stored = localStorage.getItem("tonex_cache_subscription");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Sync to localStorage
+  useEffect(() => {
+    if (stats) {
+      localStorage.setItem("tonex_cache_stats", JSON.stringify(stats));
+      setCachedStats(stats);
+    }
+  }, [stats]);
+
+  useEffect(() => {
+    if (sessions) {
+      localStorage.setItem("tonex_cache_sessions", JSON.stringify(sessions));
+      setCachedSessions(sessions);
+    }
+  }, [sessions]);
+
+  useEffect(() => {
+    if (announcements) {
+      localStorage.setItem("tonex_cache_announcements", JSON.stringify(announcements));
+      setCachedAnnouncements(announcements);
+    }
+  }, [announcements]);
+
+  useEffect(() => {
+    if (topStudents) {
+      localStorage.setItem("tonex_cache_top_students", JSON.stringify(topStudents));
+      setCachedTopStudents(topStudents);
+    }
+  }, [topStudents]);
+
+  useEffect(() => {
+    if (subscription) {
+      localStorage.setItem("tonex_cache_subscription", JSON.stringify(subscription));
+      setCachedSubscription(subscription);
+    }
+  }, [subscription]);
+
   if (authLoading || !profile) {
     return <div className="min-h-screen bg-[#08142D] px-4 py-6 flex justify-center items-center"><div className="w-8 h-8 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin"></div></div>;
   }
 
+  const displayStats = stats || cachedStats;
+  const displaySessions = sessions || cachedSessions;
+  const displayAnnouncements = announcements || cachedAnnouncements;
+  const displayTopStudents = topStudents || cachedTopStudents;
+  const displaySubscription = subscription || cachedSubscription;
+
+  const showStatsLoading = statsLoading && !cachedStats;
+  const showSessionsLoading = sessionsLoading && !cachedSessions.length;
+  const showLeaderboardLoading = leaderboardLoading && !cachedTopStudents.length;
+
   const STAT_CARDS = [
-    { label: "Tests Taken", value: stats?.tests_taken || 0, icon: BookOpen, color: "#2563EB" },
-    { label: "Average Score", value: `${Math.round(stats?.avg_score || 0)}%`, icon: TrendingUp, color: "#22C55E" },
-    { label: "Correct Answers", value: stats?.correct_answers || 0, icon: CheckCircle, color: "#7C3AED" },
-    { label: "Streak", value: `${stats?.streak_count || 0} days`, icon: Zap, color: "#F59E0B" },
+    { label: "Tests Taken", value: displayStats?.tests_taken || 0, icon: BookOpen, color: "#2563EB" },
+    { label: "Average Score", value: `${Math.round(displayStats?.avg_score || 0)}%`, icon: TrendingUp, color: "#22C55E" },
+    { label: "Correct Answers", value: displayStats?.correct_answers || 0, icon: CheckCircle, color: "#7C3AED" },
+    { label: "Streak", value: `${displayStats?.streak_count || 0} days`, icon: Zap, color: "#F59E0B" },
   ];
 
   const pieData = [
-    { name: "Correct", value: stats?.correct_answers || 0, fill: "#22C55E" },
-    { name: "Wrong", value: (stats?.total_questions || 0) - (stats?.correct_answers || 0), fill: "#EF4444" },
+    { name: "Correct", value: displayStats?.correct_answers || 0, fill: "#22C55E" },
+    { name: "Wrong", value: (displayStats?.total_questions || 0) - (displayStats?.correct_answers || 0), fill: "#EF4444" },
   ];
 
-  const pctCorrect = stats?.total_questions ? Math.round((stats.correct_answers / stats.total_questions) * 100) : 0;
-  const pctWrong = stats?.total_questions ? 100 - pctCorrect : 0;
+  const pctCorrect = displayStats?.total_questions ? Math.round((displayStats.correct_answers / displayStats.total_questions) * 100) : 0;
+  const pctWrong = displayStats?.total_questions ? 100 - pctCorrect : 0;
 
   return (
     <div className="min-h-screen bg-[#08142D] px-4 py-6 sm:px-6 md:px-8">
@@ -80,7 +173,7 @@ export function Dashboard() {
         </motion.div>
 
         {/* Announcement Banner */}
-        {announcements && announcements.length > 0 && (
+        {displayAnnouncements && displayAnnouncements.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -90,15 +183,15 @@ export function Dashboard() {
               <Zap size={20} className="fill-current" />
             </div>
             <div className="flex-1">
-              <h3 className="text-white font-bold text-sm mb-1">{announcements[0].title}</h3>
-              <p className="text-[#94A3B8] text-sm leading-relaxed">{announcements[0].message}</p>
+              <h3 className="text-white font-bold text-sm mb-1">{displayAnnouncements[0].title}</h3>
+              <p className="text-[#94A3B8] text-sm leading-relaxed">{displayAnnouncements[0].message}</p>
             </div>
           </motion.div>
         )}
 
         {/* Stat Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          {statsLoading ? Array(4).fill(0).map((_, i) => (
+          {showStatsLoading ? Array(4).fill(0).map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-2xl bg-[#0F172A]" />
           )) : STAT_CARDS.map((stat, i) => (
             <motion.div
@@ -159,7 +252,7 @@ export function Dashboard() {
             className="bg-[#0F172A] border border-white/6 rounded-2xl p-6"
           >
             <h3 className="text-white font-bold mb-4">Overall Performance</h3>
-            {statsLoading ? <Skeleton className="h-28 bg-[#1E293B] rounded-xl w-full" /> : (
+            {showStatsLoading ? <Skeleton className="h-28 bg-[#1E293B] rounded-xl w-full" /> : (
             <div className="flex items-center gap-6">
               <div className="relative w-28 h-28">
                 <ResponsiveContainer width="100%" height="100%">
@@ -180,14 +273,14 @@ export function Dashboard() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-white text-lg font-extrabold">{Math.round(stats?.avg_score || 0)}%</span>
+                  <span className="text-white text-lg font-extrabold">{Math.round(displayStats?.avg_score || 0)}%</span>
                   <span className="text-[#64748B] text-[9px]">avg score</span>
                 </div>
               </div>
               <div className="space-y-3 flex-1">
                 {[
-                  { label: "Correct", count: stats?.correct_answers || 0, color: "#22C55E", pct: pctCorrect },
-                  { label: "Wrong", count: (stats?.total_questions || 0) - (stats?.correct_answers || 0), color: "#EF4444", pct: pctWrong },
+                  { label: "Correct", count: displayStats?.correct_answers || 0, color: "#22C55E", pct: pctCorrect },
+                  { label: "Wrong", count: (displayStats?.total_questions || 0) - (displayStats?.correct_answers || 0), color: "#EF4444", pct: pctWrong },
                 ].map(item => (
                   <div key={item.label}>
                     <div className="flex justify-between text-xs mb-1">
@@ -240,15 +333,15 @@ export function Dashboard() {
                     <span className="text-white font-bold text-sm">You're doing great!</span>
                   </div>
                   <p className="text-[#94A3B8] text-xs leading-relaxed">
-                    {stats?.avg_score && stats.avg_score >= 70 
+                    {displayStats?.avg_score && displayStats.avg_score >= 70 
                       ? "Your average score is excellent. Keep up the momentum and focus on practicing full-length exams to build stamina."
-                      : stats?.avg_score && stats.avg_score >= 50
+                      : displayStats?.avg_score && displayStats.avg_score >= 50
                       ? "You are on the right track! Review your mistakes and focus on your weakest subjects to boost your average."
                       : "Consistency is key. Try to complete at least one practice test every day to start seeing rapid improvements."}
                   </p>
                 </div>
                 
-                {subscription?.plan === "quarterly" && (
+                {displaySubscription?.plan === "quarterly" && (
                   <div className="bg-[#2563EB]/5 border border-[#2563EB]/25 rounded-2xl p-5">
                     <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
                       <div>
@@ -268,7 +361,7 @@ export function Dashboard() {
                   </div>
                 )}
                 
-                {subscription?.plan === "yearly" && (
+                {displaySubscription?.plan === "yearly" && (
                   <div className="bg-gradient-to-br from-[#F59E0B]/10 to-[#D97706]/10 border border-[#F59E0B]/30 rounded-2xl p-5">
                     <h4 className="text-[#F59E0B] font-bold text-sm flex items-center gap-1.5 mb-1">
                       <Crown size={16} /> Yearly Exclusive Perks
@@ -297,7 +390,7 @@ export function Dashboard() {
                   </div>
                 )}
                 
-                {subscription?.plan === "monthly" && (
+                {displaySubscription?.plan === "monthly" && (
                   <div className="bg-[#1E293B]/40 border border-white/5 rounded-2xl p-5">
                     <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
                       <div>
@@ -332,7 +425,7 @@ export function Dashboard() {
             </button>
           </div>
           <div className="space-y-3">
-            {sessionsLoading ? <Skeleton className="h-16 bg-[#1E293B] rounded-xl w-full" /> : sessions?.map((test) => (
+            {showSessionsLoading ? <Skeleton className="h-16 bg-[#1E293B] rounded-xl w-full" /> : displaySessions?.map((test) => (
               <div
                 key={test.id}
                 className="flex items-center gap-3 py-2.5 border-b border-white/4 last:border-0"
@@ -359,7 +452,7 @@ export function Dashboard() {
                 </div>
               </div>
             ))}
-            {!sessionsLoading && !sessions?.length && (
+            {!showSessionsLoading && !displaySessions?.length && (
               <div className="text-[#64748B] text-sm">No recent tests found.</div>
             )}
           </div>
@@ -382,9 +475,9 @@ export function Dashboard() {
             </button>
           </div>
           <div className="space-y-3">
-            {leaderboardLoading ? Array(3).fill(0).map((_, i) => (
+            {showLeaderboardLoading ? Array(3).fill(0).map((_, i) => (
               <Skeleton key={i} className="h-12 bg-[#1E293B] rounded-xl w-full" />
-            )) : topStudents?.slice(0, 5).map((student, idx) => {
+            ) ) : displayTopStudents?.slice(0, 5).map((student, idx) => {
               const isMe = student.full_name === profile?.full_name;
               const medals = ["🥇", "🥈", "🥉"];
               return (
@@ -415,7 +508,7 @@ export function Dashboard() {
                 </div>
               );
             })}
-            {!leaderboardLoading && !topStudents?.length && (
+            {!showLeaderboardLoading && !displayTopStudents?.length && (
               <div className="text-[#64748B] text-sm text-center py-4">No data yet — be the first!</div>
             )}
           </div>

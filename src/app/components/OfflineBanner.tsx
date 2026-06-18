@@ -23,10 +23,10 @@ export function OfflineBanner() {
           initial={{ opacity: 0, y: -40 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -40 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-[#EF4444] text-white text-xs font-semibold py-2 flex items-center justify-center gap-2"
+          className="fixed top-0 left-0 right-0 z-[100] bg-[#EF4444] text-white text-xs font-semibold py-2 flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
         >
           <WifiOff size={13} />
-          You are offline — some features may be unavailable
+          You are practicing offline. Practice sessions will sync to your stats once you reconnect.
         </motion.div>
       )}
     </AnimatePresence>

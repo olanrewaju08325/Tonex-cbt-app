@@ -8,17 +8,75 @@ export function BulkUploadView() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<any[]>([]);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const f = e.target.files[0];
       setFile(f);
+      setValidationErrors([]);
       
       Papa.parse(f, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
           setPreview(results.data.slice(0, 5));
+          
+          const errors: string[] = [];
+          const rows = results.data as any[];
+          
+          if (rows.length === 0) {
+            errors.push("The CSV file has no data rows.");
+          } else {
+            // Check headers
+            const firstRow = rows[0];
+            const headers = Object.keys(firstRow);
+            
+            const hasText = headers.includes("text") || headers.includes("question");
+            const hasSubject = headers.includes("subject_id");
+            const hasCorrect = headers.includes("correct_answer") || headers.includes("correct_option");
+            const hasOptions = headers.includes("option_a") && headers.includes("option_b") && headers.includes("option_c") && headers.includes("option_d");
+            
+            if (!hasText) errors.push("Missing compulsory column: 'text' or 'question'");
+            if (!hasSubject) errors.push("Missing compulsory column: 'subject_id'");
+            if (!hasCorrect) errors.push("Missing compulsory column: 'correct_answer' or 'correct_option'");
+            if (!hasOptions) errors.push("Missing compulsory columns for options: 'option_a', 'option_b', 'option_c', and 'option_d'");
+            
+            // Validate each row
+            if (errors.length === 0) {
+              rows.forEach((row, index) => {
+                const rowNum = index + 2; // +1 for 0-index, +1 for header row
+                
+                const qText = row.text || row.question;
+                if (!qText || !String(qText).trim()) {
+                  errors.push(`Row ${rowNum}: Question text is empty.`);
+                }
+                
+                if (!row.subject_id || !String(row.subject_id).trim()) {
+                  errors.push(`Row ${rowNum}: subject_id is empty.`);
+                }
+                
+                const correct = (row.correct_answer || row.correct_option || "").trim().toUpperCase();
+                if (!correct) {
+                  errors.push(`Row ${rowNum}: correct_answer is empty.`);
+                } else if (!["A", "B", "C", "D"].includes(correct)) {
+                  errors.push(`Row ${rowNum}: correct_answer must be 'A', 'B', 'C', or 'D' (found '${correct}').`);
+                }
+                
+                if (row.option_a === undefined || row.option_a === null || String(row.option_a).trim() === "") errors.push(`Row ${rowNum}: Option A is empty.`);
+                if (row.option_b === undefined || row.option_b === null || String(row.option_b).trim() === "") errors.push(`Row ${rowNum}: Option B is empty.`);
+                if (row.option_c === undefined || row.option_c === null || String(row.option_c).trim() === "") errors.push(`Row ${rowNum}: Option C is empty.`);
+                if (row.option_d === undefined || row.option_d === null || String(row.option_d).trim() === "") errors.push(`Row ${rowNum}: Option D is empty.`);
+              });
+            }
+          }
+          
+          if (errors.length > 0) {
+            setValidationErrors(errors);
+            toast.error(`Pre-flight check failed with ${errors.length} error(s).`);
+          } else {
+            toast.success("Pre-flight check passed! Ready to import.");
+          }
         }
       });
     }
@@ -26,6 +84,10 @@ export function BulkUploadView() {
 
   const handleUpload = async () => {
     if (!file) return toast.error("Please select a CSV file first.");
+    if (validationErrors.length > 0) {
+      toast.error("Please resolve all CSV validation errors before uploading.");
+      return;
+    }
     setLoading(true);
     
     Papa.parse(file, {
@@ -150,9 +212,28 @@ export function BulkUploadView() {
           </div>
         )}
 
+        {validationErrors.length > 0 && (
+          <div className="mt-6 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl p-4">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="text-[#EF4444] shrink-0 mt-0.5" size={16} />
+              <div>
+                <h4 className="text-white font-bold text-sm">CSV Validation Errors ({validationErrors.length})</h4>
+                <div className="mt-2 max-h-36 overflow-y-auto space-y-1 text-xs text-[#F87171] font-mono">
+                  {validationErrors.slice(0, 30).map((err, idx) => (
+                    <div key={idx}>• {err}</div>
+                  ))}
+                  {validationErrors.length > 30 && (
+                    <div className="text-[#64748B] italic pt-1">...and {validationErrors.length - 30} more errors</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={handleUpload}
-          disabled={!file || loading}
+          disabled={!file || loading || validationErrors.length > 0}
           className="mt-6 w-full bg-[#2563EB] hover:bg-[#1D4ED8] disabled:bg-[#1E293B] disabled:text-[#64748B] text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
         >
           {loading ? "Uploading..." : "Import Database"}
