@@ -25,6 +25,8 @@ import { ChallengesPage } from "./pages/ChallengesPage";
 import { ChallengeAttemptPage } from "./pages/ChallengeAttemptPage";
 import { SchedulerPage } from "./pages/SchedulerPage";
 import { FlashcardsPage } from "./pages/FlashcardsPage";
+import { AggregateCalculatorPage } from "./pages/AggregateCalculatorPage";
+import { CutOffMarksPage } from "./pages/CutOffMarksPage";
 import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { AdminRoute } from "../components/AdminRoute";
@@ -61,6 +63,8 @@ export const router = createBrowserRouter([
       { path: "/challenge/:id", Component: ChallengeAttemptPage },
       { path: "/scheduler", Component: SchedulerPage },
       { path: "/flashcards", Component: FlashcardsPage },
+      { path: "/aggregate-calculator", Component: AggregateCalculatorPage },
+      { path: "/cut-offs", Component: CutOffMarksPage },
     ],
   },
   { path: "*", Component: NotFoundPage },

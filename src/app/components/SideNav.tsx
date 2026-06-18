@@ -1,5 +1,8 @@
 import { useNavigate, useLocation } from "react-router";
-import { Home, BookOpen, BarChart2, User, Crown, Trophy, FileText, Users, Calendar, Layers, MessageCircle } from "lucide-react";
+import { 
+  Home, BookOpen, BarChart2, User, Crown, Trophy, FileText, 
+  Users, Calendar, Layers, MessageCircle, Calculator, Award 
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSubscription } from "../../lib/hooks/useSubscription";
@@ -8,6 +11,8 @@ const NAV_ITEMS = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
   { icon: BookOpen, label: "Practice", path: "/practice" },
   { icon: BarChart2, label: "Full Exam", path: "/full-exam" },
+  { icon: Calculator, label: "Aggregate Calc", path: "/aggregate-calculator" },
+  { icon: Award, label: "Cut-Off Marks", path: "/cut-offs" },
   { icon: Users, label: "Challenges", path: "/challenges" },
   { icon: Calendar, label: "Timetable", path: "/scheduler" },
   { icon: FileText, label: "Materials", path: "/materials" },
