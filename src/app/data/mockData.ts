@@ -1,0 +1,371 @@
+export const UNIVERSITIES = [
+  { id: "unilag", name: "University of Lagos (UNILAG)", shortName: "UNILAG", state: "Lagos", logo: "🎓" },
+  { id: "ui", name: "University of Ibadan (UI)", shortName: "UI", state: "Oyo", logo: "🎓" },
+  { id: "oau", name: "Obafemi Awolowo University (OAU)", shortName: "OAU", state: "Osun", logo: "🎓" },
+  { id: "uniben", name: "University of Benin (UNIBEN)", shortName: "UNIBEN", state: "Edo", logo: "🎓" },
+  { id: "abu", name: "Ahmadu Bello University (ABU)", shortName: "ABU", state: "Kaduna", logo: "🎓" },
+  { id: "unn", name: "University of Nigeria, Nsukka (UNN)", shortName: "UNN", state: "Enugu", logo: "🎓" },
+  { id: "unizik", name: "Nnamdi Azikiwe University (UNIZIK)", shortName: "UNIZIK", state: "Anambra", logo: "🎓" },
+  { id: "uniport", name: "University of Port Harcourt (UNIPORT)", shortName: "UNIPORT", state: "Rivers", logo: "🎓" },
+  { id: "futa", name: "Federal University of Technology, Akure (FUTA)", shortName: "FUTA", state: "Ondo", logo: "🎓" },
+  { id: "lautech", name: "Ladoke Akintola University of Technology (LAUTECH)", shortName: "LAUTECH", state: "Oyo", logo: "🎓" },
+  { id: "babcock", name: "Babcock University", shortName: "Babcock", state: "Ogun", logo: "🎓" },
+  { id: "covenant", name: "Covenant University", shortName: "Covenant", state: "Ogun", logo: "🎓" },
+];
+
+export const SUBJECTS = [
+  { id: "english", name: "English Language", icon: "📝" },
+  { id: "mathematics", name: "Mathematics", icon: "📐" },
+  { id: "physics", name: "Physics", icon: "⚡" },
+  { id: "chemistry", name: "Chemistry", icon: "🧪" },
+  { id: "biology", name: "Biology", icon: "🧬" },
+  { id: "economics", name: "Economics", icon: "📊" },
+  { id: "government", name: "Government", icon: "🏛️" },
+  { id: "literature", name: "Literature in English", icon: "📚" },
+  { id: "geography", name: "Geography", icon: "🌍" },
+  { id: "history", name: "History", icon: "📜" },
+  { id: "commerce", name: "Commerce", icon: "💼" },
+  { id: "accounting", name: "Financial Accounting", icon: "📒" },
+];
+
+export const MOCK_QUESTIONS = [
+  {
+    id: 1,
+    subject: "english",
+    text: "Choose the word that is most nearly opposite in meaning to the word ZENITH.",
+    options: ["A. Acme", "B. Nadir", "C. Pinnacle", "D. Summit"],
+    answer: "B",
+    explanation: "ZENITH means the highest point. Its antonym (opposite) is NADIR, which means the lowest point. Acme, Pinnacle, and Summit are all synonyms of Zenith.",
+    university: "unilag",
+    year: 2023,
+  },
+  {
+    id: 2,
+    subject: "english",
+    text: "Select the option that best fills the gap: The committee _____ been unable to reach a decision.",
+    options: ["A. have", "B. has", "C. had been", "D. were"],
+    answer: "B",
+    explanation: "'Committee' is a collective noun and takes a singular verb 'has' in formal/standard English usage, especially in Nigerian English.",
+    university: "unilag",
+    year: 2023,
+  },
+  {
+    id: 3,
+    subject: "mathematics",
+    text: "If log₂(x) = 3, find the value of x.",
+    options: ["A. 6", "B. 8", "C. 9", "D. 12"],
+    answer: "B",
+    explanation: "log₂(x) = 3 means 2³ = x. Therefore x = 2 × 2 × 2 = 8.",
+    university: "ui",
+    year: 2022,
+  },
+  {
+    id: 4,
+    subject: "mathematics",
+    text: "Find the value of x in the equation 3x² - 12 = 0.",
+    options: ["A. x = ±2", "B. x = ±4", "C. x = ±3", "D. x = ±6"],
+    answer: "A",
+    explanation: "3x² - 12 = 0 → 3x² = 12 → x² = 4 → x = ±√4 = ±2.",
+    university: "ui",
+    year: 2022,
+  },
+  {
+    id: 5,
+    subject: "physics",
+    text: "A body of mass 5 kg is acted upon by a force of 20 N. What is the acceleration of the body?",
+    options: ["A. 2 m/s²", "B. 4 m/s²", "C. 5 m/s²", "D. 100 m/s²"],
+    answer: "B",
+    explanation: "Using Newton's second law: F = ma → a = F/m = 20/5 = 4 m/s².",
+    university: "oau",
+    year: 2023,
+  },
+  {
+    id: 6,
+    subject: "physics",
+    text: "Which of the following is a vector quantity?",
+    options: ["A. Mass", "B. Temperature", "C. Speed", "D. Velocity"],
+    answer: "D",
+    explanation: "Velocity is a vector quantity because it has both magnitude and direction. Mass, temperature, and speed are scalar quantities.",
+    university: "oau",
+    year: 2022,
+  },
+  {
+    id: 7,
+    subject: "chemistry",
+    text: "What is the oxidation state of sulphur in H₂SO₄?",
+    options: ["A. +2", "B. +4", "C. +6", "D. +8"],
+    answer: "C",
+    explanation: "In H₂SO₄: 2(+1) + S + 4(-2) = 0 → 2 + S - 8 = 0 → S = +6.",
+    university: "uniben",
+    year: 2023,
+  },
+  {
+    id: 8,
+    subject: "biology",
+    text: "Which organelle is responsible for protein synthesis in a cell?",
+    options: ["A. Mitochondria", "B. Ribosome", "C. Golgi apparatus", "D. Lysosome"],
+    answer: "B",
+    explanation: "Ribosomes are the site of protein synthesis. They translate mRNA into amino acid chains that form proteins.",
+    university: "abu",
+    year: 2022,
+  },
+  {
+    id: 9,
+    subject: "economics",
+    text: "When supply increases and demand remains constant, the equilibrium price will:",
+    options: ["A. Increase", "B. Decrease", "C. Remain constant", "D. Cannot be determined"],
+    answer: "B",
+    explanation: "When supply increases and demand is constant, there is a surplus at the original price, causing sellers to lower prices until a new equilibrium is reached at a lower price.",
+    university: "unilag",
+    year: 2023,
+  },
+  {
+    id: 10,
+    subject: "government",
+    text: "The principle of separation of powers was propounded by:",
+    options: ["A. John Locke", "B. Thomas Hobbes", "C. Baron de Montesquieu", "D. Jean-Jacques Rousseau"],
+    answer: "C",
+    explanation: "Baron de Montesquieu, a French political philosopher, propounded the doctrine of separation of powers in his book 'The Spirit of the Laws' (1748).",
+    university: "ui",
+    year: 2022,
+  },
+  {
+    id: 11,
+    subject: "mathematics",
+    text: "Simplify: (2³ × 2⁴) ÷ 2⁵",
+    options: ["A. 2", "B. 4", "C. 8", "D. 16"],
+    answer: "B",
+    explanation: "(2³ × 2⁴) ÷ 2⁵ = 2^(3+4-5) = 2² = 4.",
+    university: "oau",
+    year: 2023,
+  },
+  {
+    id: 12,
+    subject: "english",
+    text: "Identify the figure of speech in: 'The sun smiled down on us.'",
+    options: ["A. Metaphor", "B. Simile", "C. Personification", "D. Hyperbole"],
+    answer: "C",
+    explanation: "Personification attributes human qualities (smiling) to non-human entities (the sun). It is different from simile (uses like/as) and metaphor (direct comparison).",
+    university: "oau",
+    year: 2022,
+  },
+  {
+    id: 13,
+    subject: "physics",
+    text: "The unit of electric potential difference (voltage) is:",
+    options: ["A. Ampere", "B. Ohm", "C. Watt", "D. Volt"],
+    answer: "D",
+    explanation: "Electric potential difference is measured in Volts (V), named after Alessandro Volta. Ampere measures current, Ohm measures resistance, and Watt measures power.",
+    university: "unn",
+    year: 2023,
+  },
+  {
+    id: 14,
+    subject: "chemistry",
+    text: "Which of the following elements is a noble gas?",
+    options: ["A. Fluorine", "B. Nitrogen", "C. Argon", "D. Chlorine"],
+    answer: "C",
+    explanation: "Argon (Ar) is a noble gas in Group 18 of the periodic table. Noble gases are characterized by full valence electron shells and are generally unreactive.",
+    university: "uniport",
+    year: 2022,
+  },
+  {
+    id: 15,
+    subject: "biology",
+    text: "Which blood group is known as the universal donor?",
+    options: ["A. AB+", "B. A+", "C. O-", "D. B-"],
+    answer: "C",
+    explanation: "Blood group O- (O negative) is the universal donor because it lacks A, B, and Rh antigens, making it compatible with all blood groups in emergency transfusions.",
+    university: "abu",
+    year: 2023,
+  },
+];
+
+export const LEADERBOARD_DATA = [
+  { rank: 1, name: "Adaeze Okonkwo", score: 98, university: "UNILAG", avatar: "AO", change: 0 },
+  { rank: 2, name: "Emeka Nwosu", score: 96, university: "UI", avatar: "EN", change: 1 },
+  { rank: 3, name: "Fatima Al-Amin", score: 95, university: "ABU", avatar: "FA", change: -1 },
+  { rank: 4, name: "Chinedu Obi", score: 93, university: "OAU", avatar: "CO", change: 2 },
+  { rank: 5, name: "Blessing Eze", score: 91, university: "UNIBEN", avatar: "BE", change: 0 },
+  { rank: 6, name: "Tunde Adesanya", score: 89, university: "UNILAG", avatar: "TA", change: -2 },
+  { rank: 7, name: "Ngozi Ibe", score: 88, university: "UNN", avatar: "NI", change: 3 },
+  { rank: 8, name: "Yusuf Garba", score: 86, university: "ABU", avatar: "YG", change: 1 },
+  { rank: 9, name: "Chiamaka Dike", score: 85, university: "UNIZIK", avatar: "CD", change: -1 },
+  { rank: 10, name: "Oluwaseun Adeyemi", score: 84, university: "LAUTECH", avatar: "OA", change: 4 },
+];
+
+export const MOCK_USER = {
+  id: "u1",
+  name: "Chioma Nwosu",
+  email: "chioma.nwosu@email.com",
+  phone: "+234 801 234 5678",
+  state: "Lagos",
+  targetUniversity: "UNILAG",
+  isPremium: false,
+  joinDate: "2024-01-15",
+  avatar: "CN",
+  stats: {
+    testsTaken: 24,
+    avgScore: 71,
+    correctAnswers: 342,
+    totalQuestions: 480,
+  },
+  testHistory: [
+    { id: 1, date: "2024-01-28", subject: "Mathematics", score: 78, total: 40, time: "38:24" },
+    { id: 2, date: "2024-01-26", subject: "English", score: 82, total: 60, time: "52:11" },
+    { id: 3, date: "2024-01-24", subject: "Physics", score: 65, total: 40, time: "39:55" },
+    { id: 4, date: "2024-01-22", subject: "Chemistry", score: 70, total: 40, time: "41:03" },
+    { id: 5, date: "2024-01-20", subject: "Biology", score: 88, total: 40, time: "35:47" },
+  ],
+};
+
+export const NIGERIAN_STATES = [
+  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
+  "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT", "Gombe",
+  "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara",
+  "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau",
+  "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
+];
+
+export const FEATURES = [
+  {
+    icon: "🧠",
+    title: "Real Past Questions",
+    description: "Access thousands of verified past questions from top Nigerian universities spanning 10+ years.",
+    color: "#2563EB",
+  },
+  {
+    icon: "⏱️",
+    title: "Realistic CBT Simulation",
+    description: "Practice in an environment that mirrors actual Post-UTME CBT centers — same interface, same pressure.",
+    color: "#7C3AED",
+  },
+  {
+    icon: "📊",
+    title: "Performance Analytics",
+    description: "Get detailed insights into your strengths and weaknesses with AI-powered performance tracking.",
+    color: "#059669",
+  },
+  {
+    icon: "💡",
+    title: "Detailed Explanations",
+    description: "Every question comes with step-by-step solutions and explanations written by expert tutors.",
+    color: "#D97706",
+  },
+  {
+    icon: "🏆",
+    title: "Competitive Leaderboard",
+    description: "Compete with aspirants from across Nigeria and see where you rank among your peers.",
+    color: "#DC2626",
+  },
+  {
+    icon: "📱",
+    title: "Study Anywhere",
+    description: "Fully mobile-optimized and works offline. Study at home, on the bus, or anywhere else.",
+    color: "#0891B2",
+  },
+];
+
+export const TESTIMONIALS = [
+  {
+    name: "Adaeze Okonkwo",
+    university: "UNILAG, Medicine",
+    text: "Tonex CBT changed everything for me. I scored 78/80 in the UNILAG Post-UTME after practicing consistently on the platform. The real questions feel exactly like the actual exam!",
+    score: "78/80",
+    avatar: "AO",
+  },
+  {
+    name: "Emeka Nwosu",
+    university: "UI, Engineering",
+    text: "I failed Post-UTME twice before finding Tonex. The analytics showed me exactly where I was weak. Third time I scored 72% and got admission. Best investment I ever made.",
+    score: "72%",
+    avatar: "EN",
+  },
+  {
+    name: "Fatima Al-Amin",
+    university: "ABU, Law",
+    text: "The CBT simulation is scary realistic. After 3 weeks of daily practice, the actual exam felt like just another session on Tonex. I was so calm and confident.",
+    score: "85%",
+    avatar: "FA",
+  },
+  {
+    name: "Blessing Eze",
+    university: "OAU, Computer Science",
+    text: "What I love most is the explanations. Even when I get something wrong, I understand exactly why and remember it for next time. Premium is 100% worth it.",
+    score: "91%",
+    avatar: "BE",
+  },
+];
+
+export const HOW_IT_WORKS = [
+  {
+    step: "01",
+    title: "Create Your Account",
+    description: "Sign up in 2 minutes. Select your target university and subjects. We personalize everything for your goals.",
+    icon: "👤",
+  },
+  {
+    step: "02",
+    title: "Choose Your Practice",
+    description: "Pick your subject, set the number of questions, and choose timed or untimed mode.",
+    icon: "⚙️",
+  },
+  {
+    step: "03",
+    title: "Take Realistic CBT Exams",
+    description: "Practice in an environment that looks and feels exactly like your real Post-UTME exam.",
+    icon: "💻",
+  },
+  {
+    step: "04",
+    title: "Review & Improve",
+    description: "Study detailed explanations for every question you got wrong. Track your progress with analytics.",
+    icon: "📈",
+  },
+];
+
+export const FAQ_ITEMS = [
+  {
+    question: "What is Post-UTME and how does Tonex CBT help?",
+    answer: "Post-UTME (Post Unified Tertiary Matriculation Examination) is a screening test conducted by Nigerian universities to further assess JAMB candidates. Tonex CBT provides thousands of verified past questions, realistic exam simulations, and detailed analytics to help you prepare thoroughly.",
+  },
+  {
+    question: "Which universities are covered on Tonex CBT?",
+    answer: "We currently cover 50+ Nigerian universities including UNILAG, UI, OAU, UNIBEN, ABU, UNN, UNIZIK, UNIPORT, FUTA, LAUTECH, Babcock, Covenant University, and many more. We add new universities regularly.",
+  },
+  {
+    question: "How many questions are available?",
+    answer: "Our database contains over 15,000 verified past questions across all major subjects, spanning 10+ years of Post-UTME examinations. Premium subscribers get unlimited access to all questions.",
+  },
+  {
+    question: "Can I use Tonex CBT offline?",
+    answer: "Yes! Tonex CBT is a Progressive Web App (PWA). Once loaded, core features work offline. You can install it on your phone like a native app from your browser.",
+  },
+  {
+    question: "Is there a free version?",
+    answer: "Yes. The free plan gives you access to 50 questions per day and basic analytics. Premium plans unlock unlimited questions, full CBT simulations, detailed analytics, leaderboards, and more.",
+  },
+  {
+    question: "How is the CBT simulation different from regular practice?",
+    answer: "Our CBT simulation replicates the exact exam environment — countdown timer, question palette, flagging system, and no going back policy. This trains you to handle exam pressure and manage time effectively.",
+  },
+];
+
+export const ADMIN_STATS = {
+  totalUsers: 12847,
+  premiumUsers: 3241,
+  totalQuestions: 15632,
+  universities: 52,
+  revenue: 8125000,
+  newUsersToday: 127,
+  activeToday: 2341,
+  examsToday: 4892,
+};
+
+export const ADMIN_RECENT_USERS = [
+  { id: "u1", name: "Chioma Nwosu", email: "chioma@email.com", university: "UNILAG", plan: "Free", joined: "2024-01-28", status: "active" },
+  { id: "u2", name: "Emeka Obi", email: "emeka@email.com", university: "UI", plan: "Premium", joined: "2024-01-27", status: "active" },
+  { id: "u3", name: "Fatima Bello", email: "fatima@email.com", university: "ABU", plan: "Premium", joined: "2024-01-27", status: "active" },
+  { id: "u4", name: "Tunde Alabi", email: "tunde@email.com", university: "OAU", plan: "Free", joined: "2024-01-26", status: "inactive" },
+  { id: "u5", name: "Ngozi Eze", email: "ngozi@email.com", university: "UNN", plan: "Free", joined: "2024-01-26", status: "active" },
+];

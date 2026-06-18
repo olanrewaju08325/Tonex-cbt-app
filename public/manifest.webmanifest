@@ -1,0 +1,26 @@
+{
+  "name": "Tonex CBT",
+  "short_name": "Tonex",
+  "description": "Nigeria's #1 Post-UTME Practice Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08142D",
+  "theme_color": "#08142D",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["education"]
+}
