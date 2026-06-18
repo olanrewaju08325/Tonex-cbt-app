@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   BookOpen, BarChart2, RotateCcw, Trophy, Crown, Clock,
-  CheckCircle, XCircle, TrendingUp, ChevronRight, Zap, Users, Calendar, Layers, MessageCircle
+  CheckCircle, XCircle, TrendingUp, ChevronRight, Zap, Users, Calendar, Layers, MessageCircle,
+  Calculator, Award, Bookmark
 } from "lucide-react";
 import { RadialBarChart, RadialBar, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useAuth } from "../../contexts/AuthContext";
@@ -15,9 +16,13 @@ import { Skeleton } from "../components/ui/skeleton";
 const QUICK_ACTIONS = [
   { label: "Practice Questions", icon: BookOpen, path: "/practice", color: "#2563EB", bg: "#2563EB15", description: "Subject-wise practice" },
   { label: "Full Exam", icon: BarChart2, path: "/full-exam", color: "#7C3AED", bg: "#7C3AED15", description: "All uni subjects" },
-  { label: "Review Mistakes", icon: RotateCcw, path: "/review", color: "#F59E0B", bg: "#F59E0B15", description: "Learn from errors" },
+  { label: "Detailed Analytics", icon: TrendingUp, path: "/analytics", color: "#06B6D4", bg: "#06B6D415", description: "Track your progress" },
+  { label: "Saved Questions", icon: Bookmark, path: "/bookmarks", color: "#EC4899", bg: "#EC489915", description: "Review saved items" },
+  { label: "Aggregate Calculator", icon: Calculator, path: "/aggregate-calculator", color: "#F59E0B", bg: "#F59E0B15", description: "Screening score calc" },
+  { label: "Cut-Off Marks", icon: Award, path: "/cut-offs", color: "#10B981", bg: "#10B98115", description: "Merit marks check" },
+  { label: "Review Mistakes", icon: RotateCcw, path: "/review", color: "#EF4444", bg: "#EF444415", description: "Learn from errors" },
   { label: "Study Flashcards", icon: Layers, path: "/flashcards", color: "#3B82F6", bg: "#3B82F615", description: "Memorize key terms" },
-  { label: "Peer Challenges", icon: Users, path: "/challenges", color: "#A78BFA", bg: "#7C3AED15", description: "Challenge friends" },
+  { label: "Peer Challenges", icon: Users, path: "/challenges", color: "#A78BFA", bg: "#A78BFA15", description: "Challenge friends" },
   { label: "Exam Timetable", icon: Calendar, path: "/scheduler", color: "#22C55E", bg: "#22C55E15", description: "Plan your exams" },
 ];
 
