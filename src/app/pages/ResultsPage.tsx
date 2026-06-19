@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router";
 import { motion } from "motion/react";
-import { Trophy, Clock, CheckCircle, XCircle, RotateCcw, Eye, Share2, TrendingUp, ThumbsUp, BookOpen } from "lucide-react";
+import { Trophy, Clock, CheckCircle, XCircle, RotateCcw, Eye, Share2, TrendingUp, ThumbsUp, BookOpen, AlertTriangle, ChevronRight } from "lucide-react";
 import {
   RadialBarChart, RadialBar, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell
@@ -50,6 +50,32 @@ export function ResultsPage() {
   };
 
   const grade = getGrade();
+
+  // Group results by subtopic
+  const topicsMap: Record<string, { subjectId: string; subjectName: string; correct: number; total: number }> = {};
+  questions.forEach((q, index) => {
+    const topicName = q.topic || "General Concepts";
+    const subId = q.subject_id;
+    const subName = q.subjects?.name || "Subject";
+    const isCorrect = answers[index] === (q.correct_option || q.correct_answer);
+    
+    if (!topicsMap[topicName]) {
+      topicsMap[topicName] = { subjectId: subId, subjectName: subName, correct: 0, total: 0 };
+    }
+    topicsMap[topicName].total += 1;
+    if (isCorrect) {
+      topicsMap[topicName].correct += 1;
+    }
+  });
+
+  const topicWiseBreakdown = Object.entries(topicsMap).map(([topic, data]) => ({
+    topic,
+    subjectId: data.subjectId,
+    subjectName: data.subjectName,
+    correct: data.correct,
+    total: data.total,
+    accuracy: Math.round((data.correct / data.total) * 100),
+  })).sort((a, b) => a.accuracy - b.accuracy);
 
   const subjectsSet = Array.from(new Set(questions.map(q => q.subjects?.name || "Subject")));
   const subjectBreakdown = subjectsSet.map(sub => {
@@ -171,6 +197,87 @@ export function ResultsPage() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Topic-Wise Target Weakness breakdown card */}
+        {topicWiseBreakdown.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="bg-[#0F172A] border border-white/6 rounded-2xl p-6 mb-6"
+          >
+            <h3 className="text-white font-bold mb-1 flex items-center gap-2">
+              <TrendingUp size={18} className="text-[#60A5FA]" />
+              Topic-Wise Performance Analysis
+            </h3>
+            <p className="text-[#64748B] text-xs mb-4">Identify sub-topics that require additional revision and practice.</p>
+            
+            <div className="space-y-4">
+              {topicWiseBreakdown.map((t, idx) => {
+                const isWeak = t.accuracy < 60;
+                const isIntermediate = t.accuracy >= 60 && t.accuracy < 75;
+                const isStrong = t.accuracy >= 75;
+                
+                const accuracyColor = isStrong ? "#22C55E" : isIntermediate ? "#F59E0B" : "#EF4444";
+                const badgeBg = isStrong ? "bg-[#22C55E]/10 text-[#22C55E]" : isIntermediate ? "bg-[#F59E0B]/10 text-[#F59E0B]" : "bg-[#EF4444]/10 text-[#EF4444]";
+                const badgeLabel = isStrong ? "Strong Topic" : isIntermediate ? "Needs Practice" : "Critical Weakness";
+                
+                return (
+                  <div key={idx} className="bg-[#1E293B]/40 border border-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <span className="text-[10px] font-semibold text-[#60A5FA] bg-[#2563EB]/15 px-2 py-0.5 rounded">
+                          {t.subjectName}
+                        </span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${badgeBg}`}>
+                          {badgeLabel}
+                        </span>
+                      </div>
+                      <h4 className="text-white font-semibold text-sm truncate">{t.topic}</h4>
+                      
+                      {/* Bar indicator */}
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="bg-[#1E293B] rounded-full h-2 flex-1 max-w-[150px]">
+                          <div
+                            className="h-2 rounded-full transition-all"
+                            style={{ width: `${t.accuracy}%`, backgroundColor: accuracyColor }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-slate-300">{t.accuracy}% ({t.correct}/{t.total})</span>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex items-center">
+                      <button
+                        onClick={() => {
+                          navigate("/exam", {
+                            state: {
+                              mode: "practice",
+                              subject: t.subjectId,
+                              subjectName: t.subjectName,
+                              topic: t.topic,
+                              university: state.university || null,
+                              count: 10,
+                              timer: 15
+                            }
+                          });
+                        }}
+                        className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          isWeak 
+                            ? "bg-[#EF4444]/10 border border-[#EF4444]/20 hover:bg-[#EF4444]/20 text-[#EF4444]" 
+                            : "bg-[#1E293B] border border-white/6 hover:border-white/12 text-[#94A3B8] hover:text-white"
+                        }`}
+                      >
+                        <BookOpen size={12} />
+                        Practice Topic
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
         )}

@@ -7,6 +7,7 @@ import { useBookmarks, useToggleBookmark } from "../../lib/hooks/useBookmarks";
 import { Skeleton } from "../components/ui/skeleton";
 import { toast } from "sonner";
 import { getAIExplanation } from "../../lib/gemini";
+import Latex from "react-latex-next";
 
 export function BookmarksPage() {
   const navigate = useNavigate();
@@ -206,7 +207,7 @@ export function BookmarksPage() {
                                 <Trash2 size={14} />
                               </button>
                             </div>
-                            <p className="text-white text-sm leading-relaxed font-medium mb-4">{q?.text}</p>
+                            <div className="text-white text-sm leading-relaxed font-medium mb-4"><Latex>{q?.text}</Latex></div>
 
                             <div className="space-y-2">
                               {[q?.option_a, q?.option_b, q?.option_c, q?.option_d].map((opt, i) => {
@@ -218,7 +219,7 @@ export function BookmarksPage() {
                                     isCorrect ? "bg-[#22C55E]/10 border-[#22C55E]/30 text-[#22C55E]" : "bg-[#1E293B]/40 border-white/5 text-[#64748B]"
                                   }`}>
                                     <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${isCorrect ? "bg-[#22C55E] text-white" : "bg-[#1E293B] text-[#475569]"}`}>{letter}</span>
-                                    <span className="flex-1">{opt}</span>
+                                    <span className="flex-1"><Latex>{opt}</Latex></span>
                                     {isCorrect && <CheckCircle size={12} />}
                                   </div>
                                 );
@@ -239,7 +240,7 @@ export function BookmarksPage() {
                                   <Sparkles size={10} /> Explain with AI
                                 </button>
                               </div>
-                              <p className="text-[#94A3B8] text-xs leading-relaxed">{q?.explanation || "No explanation provided for this question."}</p>
+                              <div className="text-[#94A3B8] text-xs leading-relaxed"><Latex>{q?.explanation || "No explanation provided for this question."}</Latex></div>
                             </div>
                           </>
                         );

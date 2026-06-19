@@ -17,6 +17,7 @@ export function FullExamPage() {
   const [config, setConfig] = useState<any>(null);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [numSubjects, setNumSubjects] = useState<number>(4);
+  const [savePreset, setSavePreset] = useState(false);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -35,7 +36,24 @@ export function FullExamPage() {
         setNumSubjects(defaultNum);
         // Pre-select compulsory subjects
         const compulsory = (data.subjects || []).filter((s: any) => s.is_compulsory).map((s: any) => s.subject_id);
-        setSelectedSubjects(compulsory.slice(0, defaultNum));
+        
+        let loadedPreset: string[] | null = null;
+        try {
+          const stored = localStorage.getItem(`tonex_subject_preset_${profile.id}`);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length === defaultNum) {
+              const hasAllCompulsory = compulsory.every(id => parsed.includes(id));
+              if (hasAllCompulsory) {
+                loadedPreset = parsed;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to load preset:", e);
+        }
+        
+        setSelectedSubjects(loadedPreset || compulsory.slice(0, defaultNum));
       }
       setLoading(false);
     };
@@ -66,6 +84,14 @@ export function FullExamPage() {
     if (selectedSubjects.length !== numSubjects) {
       toast.error(`Please select exactly ${numSubjects} subjects`);
       return;
+    }
+    
+    if (savePreset) {
+      try {
+        localStorage.setItem(`tonex_subject_preset_${profile.id}`, JSON.stringify(selectedSubjects));
+      } catch (e) {
+        console.error("Failed to save preset:", e);
+      }
     }
     
     const selectedSubjectNames = selectedSubjects.map(id => allSubjects?.find(s => s.id === id)?.name || "Unknown");
@@ -194,6 +220,19 @@ export function FullExamPage() {
               </button>
             );
           })}
+        </div>
+
+        <div className="flex items-center gap-2.5 mb-5 px-1">
+          <input
+            type="checkbox"
+            id="savePreset"
+            checked={savePreset}
+            onChange={(e) => setSavePreset(e.target.checked)}
+            className="w-4 h-4 rounded border-white/10 bg-[#1E293B] text-[#2563EB] focus:ring-0 cursor-pointer"
+          />
+          <label htmlFor="savePreset" className="text-[#94A3B8] text-xs font-semibold cursor-pointer">
+            Save this subject combination as default preset
+          </label>
         </div>
 
         <button

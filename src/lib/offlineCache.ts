@@ -114,6 +114,7 @@ export async function getOfflineQuestions(params: {
   subjectIds?: string[];
   universityId: string | null;
   limit?: number;
+  topic?: string;
 }): Promise<any[]> {
   try {
     const db = await openOfflineDB();
@@ -131,6 +132,11 @@ export async function getOfflineQuestions(params: {
           all = all.filter((q) => q.subject_id === params.subjectId);
         } else if (params.subjectIds && params.subjectIds.length > 0) {
           all = all.filter((q) => params.subjectIds!.includes(q.subject_id));
+        }
+
+        // Filter by topic
+        if (params.topic) {
+          all = all.filter((q) => q.topic === params.topic);
         }
         
         // Filter by university

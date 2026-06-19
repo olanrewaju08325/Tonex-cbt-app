@@ -3,9 +3,11 @@ import { useNavigate, useLocation } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Flag, ChevronLeft, ChevronRight, Clock, Grid3X3, X,
-  AlertTriangle, Maximize, ShieldAlert, Eye, EyeOff, Wifi, WifiOff
+  AlertTriangle, Maximize, ShieldAlert, Eye, EyeOff, Wifi, WifiOff, Calculator
 } from "lucide-react";
 import { useQuestions } from "../../lib/hooks/useQuestions";
+import Latex from "react-latex-next";
+import { CbtCalculator } from "../components/CbtCalculator";
 import { useSaveExamSession } from "../../lib/hooks/useExamSessions";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -55,6 +57,7 @@ export function ExamPage() {
   const [timeLeft, setTimeLeft] = useState(timerMins * 60);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [submitModal, setSubmitModal] = useState(false);
+  const [showCalc, setShowCalc] = useState(false);
   const [sessionSaved, setSessionSaved] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [violations, setViolations] = useState(0);
@@ -230,6 +233,19 @@ export function ExamPage() {
           });
         }
       }
+      // Save Daily Challenge completion
+      if (state?.isDailyChallenge) {
+        const dateStr = new Date().toLocaleDateString('en-CA');
+        localStorage.setItem(`tonex_daily_challenge_${profile?.id || 'guest'}_${dateStr}`, "true");
+        try {
+          const key = `tonex_xp_points_${profile?.id || 'guest'}`;
+          const currentXp = parseInt(localStorage.getItem(key) || "100");
+          const earned = state?.isDoubleChallenge ? 100 : 50;
+          localStorage.setItem(key, (currentXp + earned).toString());
+        } catch (e) {
+          console.error("XP saving failed:", e);
+        }
+      }
       navigate("/results", {
         replace: true,
         state: {
@@ -393,6 +409,18 @@ export function ExamPage() {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowCalc(prev => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                showCalc
+                  ? "bg-[#2563EB]/20 border border-[#2563EB]/40 text-[#60A5FA]"
+                  : "bg-[#1E293B] hover:bg-[#2563EB]/20 text-[#94A3B8] hover:text-white"
+              }`}
+              title="Toggle Calculator"
+            >
+              <Calculator size={14} />
+              <span className="hidden sm:inline">Calculator</span>
+            </button>
+            <button
               onClick={() => setPaletteOpen(true)}
               className="flex items-center gap-1.5 bg-[#1E293B] hover:bg-[#2563EB]/20 px-3 py-2 rounded-xl text-[#94A3B8] hover:text-white transition-all text-xs"
               title="Question Palette"
@@ -492,7 +520,7 @@ export function ExamPage() {
                   </div>
                 </div>
 
-                <p className="text-white text-base leading-relaxed font-medium whitespace-pre-wrap">{q.text}</p>
+                <div className="text-white text-base leading-relaxed font-medium whitespace-pre-wrap"><Latex>{q.text}</Latex></div>
                 {q.image_url && (
                   <img src={q.image_url} alt="Question figure" className="mt-4 rounded-lg max-h-64 object-contain" />
                 )}
@@ -524,7 +552,7 @@ export function ExamPage() {
                         {letter}
                       </div>
                       <span className={`text-sm leading-relaxed ${selected ? "text-white font-medium" : "text-[#94A3B8]"}`}>
-                        {option}
+                        <Latex>{option}</Latex>
                       </span>
                     </motion.button>
                   );
@@ -802,6 +830,11 @@ export function ExamPage() {
             </motion.div>
           </>
         )}
+      </AnimatePresence>
+
+      {/* Floating Draggable Calculator */}
+      <AnimatePresence>
+        {showCalc && <CbtCalculator onClose={() => setShowCalc(false)} />}
       </AnimatePresence>
     </div>
   );

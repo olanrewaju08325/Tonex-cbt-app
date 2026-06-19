@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "sonner";
 import { getAIExplanation } from "../../lib/gemini";
+import Latex from "react-latex-next";
 
 export function ReviewPage() {
   const navigate = useNavigate();
@@ -223,7 +224,7 @@ export function ReviewPage() {
               {/* Question */}
               <div className="bg-[#0F172A] border border-white/6 rounded-2xl p-6 mb-4">
                 <div className="text-[#64748B] text-xs mb-3">Q{item.origIdx + 1} · {item.q.subjects?.name || "Subject"} · {item.q.universities?.short_name || ""}</div>
-                <p className="text-white text-base leading-relaxed font-medium whitespace-pre-wrap">{item.q.text}</p>
+                <div className="text-white text-base leading-relaxed font-medium whitespace-pre-wrap"><Latex>{item.q.text}</Latex></div>
                 {item.q.image_url && (
                   <img src={item.q.image_url} alt="Question figure" className="mt-4 rounded-lg max-h-64 object-contain" />
                 )}
@@ -254,7 +255,7 @@ export function ReviewPage() {
                       }`}>
                         {letter}
                       </div>
-                      <span className="text-sm flex-1">{opt}</span>
+                      <span className="text-sm flex-1"><Latex>{opt}</Latex></span>
                       {isCorrect && <CheckCircle size={16} className="text-[#22C55E] shrink-0" />}
                       {isWrongUserAnswer && <XCircle size={16} className="text-[#EF4444] shrink-0" />}
                     </div>
@@ -284,7 +285,7 @@ export function ReviewPage() {
                     </button>
                   </div>
                 </div>
-                <p className="text-[#94A3B8] text-sm leading-relaxed">{item.q.explanation || "No explanation provided for this question."}</p>
+                <div className="text-[#94A3B8] text-sm leading-relaxed"><Latex>{item.q.explanation || "No explanation provided for this question."}</Latex></div>
               </div>
             </motion.div>
           </>

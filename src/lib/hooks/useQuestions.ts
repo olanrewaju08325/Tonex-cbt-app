@@ -8,11 +8,12 @@ interface UseQuestionsOptions {
   subjectId?: string;
   subjectIds?: string[];
   limit?: number;
+  topic?: string;
 }
 
-export function useQuestions({ universityId, subjectId, subjectIds, limit }: UseQuestionsOptions) {
+export function useQuestions({ universityId, subjectId, subjectIds, limit, topic }: UseQuestionsOptions) {
   return useQuery({
-    queryKey: ['questions', universityId, subjectId, subjectIds, limit],
+    queryKey: ['questions', universityId, subjectId, subjectIds, limit, topic],
     queryFn: async () => {
       // If client is offline, fallback directly to IndexedDB
       if (!navigator.onLine) {
@@ -21,6 +22,7 @@ export function useQuestions({ universityId, subjectId, subjectIds, limit }: Use
           subjectId,
           subjectIds,
           limit,
+          topic,
         });
         if (localQs && localQs.length > 0) {
           return localQs as (Question & { subjects?: { name: string } })[];
@@ -37,6 +39,10 @@ export function useQuestions({ universityId, subjectId, subjectIds, limit }: Use
           query = query.eq('subject_id', subjectId);
         } else if (subjectIds && subjectIds.length > 0) {
           query = query.in('subject_id', subjectIds);
+        }
+
+        if (topic) {
+          query = query.eq('topic', topic);
         }
 
         if (universityId) {
@@ -81,6 +87,7 @@ export function useQuestions({ universityId, subjectId, subjectIds, limit }: Use
           subjectId,
           subjectIds,
           limit,
+          topic,
         });
         if (localQs && localQs.length > 0) {
           return localQs as (Question & { subjects?: { name: string } })[];

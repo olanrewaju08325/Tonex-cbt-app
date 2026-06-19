@@ -60,6 +60,7 @@ export function Dashboard() {
   };
 
   const { user, profile, loading: authLoading } = useAuth();
+  const { data: stats, isLoading: statsLoading } = useUserStats();
   const [sendingEmail, setSendingEmail] = useState(false);
 
   const handleSendEmailReport = async () => {
@@ -159,6 +160,33 @@ export function Dashboard() {
     }
   });
 
+  const [xpPoints, setXpPoints] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem(`tonex_xp_points_${profile?.id || 'guest'}`);
+      return stored ? parseInt(stored) : 100;
+    } catch {
+      return 100;
+    }
+  });
+
+  const [dailyChallengeDone, setDailyChallengeDone] = useState<boolean>(() => {
+    try {
+      const dateStr = new Date().toLocaleDateString('en-CA');
+      return localStorage.getItem(`tonex_daily_challenge_${profile?.id || 'guest'}_${dateStr}`) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const [savedStreak, setSavedStreak] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem(`tonex_saved_streak_${profile?.id || 'guest'}`);
+      return stored ? parseInt(stored) : 0;
+    } catch {
+      return 0;
+    }
+  });
+
   const [cachedSessions, setCachedSessions] = useState<any[]>(() => {
     try {
       const stored = localStorage.getItem("tonex_cache_sessions");
@@ -240,6 +268,48 @@ export function Dashboard() {
   const displayAnnouncements = announcements || cachedAnnouncements;
   const displayTopStudents = topStudents || cachedTopStudents;
   const displaySubscription = subscription || cachedSubscription;
+
+  const currentStreak = displayStats?.streak_count || 0;
+
+  useEffect(() => {
+    if (currentStreak > 0) {
+      localStorage.setItem(`tonex_saved_streak_${profile?.id || 'guest'}`, currentStreak.toString());
+      setSavedStreak(currentStreak);
+    }
+  }, [currentStreak, profile?.id]);
+
+  const displayStreak = (localStorage.getItem(`tonex_recovered_streak_${profile?.id || 'guest'}`) === "true")
+    ? Math.max(currentStreak, savedStreak || 1)
+    : currentStreak;
+
+  const handleRecoverStreakWithXP = () => {
+    if (xpPoints < 100) {
+      toast.error("You need at least 100 XP to recover your streak! Keep practicing to earn more.");
+      return;
+    }
+    const newXp = xpPoints - 100;
+    localStorage.setItem(`tonex_xp_points_${profile?.id || 'guest'}`, newXp.toString());
+    setXpPoints(newXp);
+    localStorage.setItem(`tonex_recovered_streak_${profile?.id || 'guest'}`, "true");
+    toast.success(`Streak recovered successfully! 🔥 ${savedStreak} days streak restored.`);
+  };
+
+  const handleStartChallenge = (isDouble: boolean = false) => {
+    const subjectId = displaySessions?.[0]?.subject_id || "43b71f9a-14d2-4467-b50a-3ccfe7efef06"; 
+    const subjectName = displaySessions?.[0]?.subjects?.name || "English";
+    
+    navigate("/exam", {
+      state: {
+        mode: "practice",
+        subject: subjectId,
+        subjectName: subjectName,
+        count: isDouble ? 20 : 10,
+        timer: isDouble ? 20 : 10,
+        isDailyChallenge: true,
+        isDoubleChallenge: isDouble,
+      }
+    });
+  };
 
   const showStatsLoading = statsLoading && !cachedStats;
   const showSessionsLoading = sessionsLoading && !cachedSessions.length;
@@ -354,6 +424,85 @@ export function Dashboard() {
             </motion.div>
           ))}
         </div>
+
+        {/* Daily Challenge Widget */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="bg-[#0F172A] border border-white/6 rounded-2xl p-6 mb-6"
+        >
+          <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center text-[#F59E0B]">
+                <Zap size={22} className="fill-[#F59E0B]" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-base font-['Manrope']">Daily Challenge Mode</h3>
+                <p className="text-[#64748B] text-xs">Maintain consistency, complete challenges, and protect streaks.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-[#1E293B] border border-white/6 px-3 py-1.5 rounded-full shrink-0">
+              <span className="text-amber-500 font-bold text-xs">⭐ {xpPoints} XP</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Status Info */}
+            <div className="bg-[#1E293B]/40 border border-white/5 rounded-xl p-4 flex flex-col justify-center">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[#94A3B8] text-xs">Streak Status</span>
+                <span className="text-white font-bold text-sm">🔥 {displayStreak} Days</span>
+              </div>
+              
+              {dailyChallengeDone ? (
+                <div className="flex items-center gap-2 text-[#22C55E] text-xs mt-1">
+                  <CheckCircle size={14} />
+                  <span>Completed today's challenge! Streak preserved.</span>
+                </div>
+              ) : displayStreak === 0 && savedStreak > 0 ? (
+                <div className="flex flex-col gap-2 mt-1">
+                  <div className="flex items-center gap-2 text-[#EF4444] text-xs">
+                    <XCircle size={14} />
+                    <span>Streak lost! Recover before it resets forever.</span>
+                  </div>
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      onClick={handleRecoverStreakWithXP}
+                      disabled={xpPoints < 100}
+                      className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-[#08142D] font-extrabold text-[10px] py-1.5 rounded-lg transition-all cursor-pointer"
+                    >
+                      Recover (100 XP)
+                    </button>
+                    <button
+                      onClick={() => handleStartChallenge(true)}
+                      className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold text-[10px] py-1.5 rounded-lg transition-all cursor-pointer"
+                    >
+                      Double Challenge
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-[#F59E0B] text-xs mt-1">
+                  <Clock size={14} className="animate-pulse" />
+                  <span>Pending. Answer 10 random questions to build your streak today.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Daily Quiz button */}
+            <div className="flex items-center justify-center bg-gradient-to-r from-[#2563EB]/5 to-[#7C3AED]/5 border border-white/5 rounded-xl p-4">
+              <button
+                onClick={() => handleStartChallenge(false)}
+                disabled={dailyChallengeDone}
+                className="w-full h-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#2563EB] to-[#7C3AED] hover:from-[#1D4ED8] hover:to-[#6D28D9] disabled:from-white/5 disabled:to-white/5 disabled:border-white/5 disabled:text-[#475569] text-white py-3 rounded-xl font-bold shadow-md shadow-blue-500/10 transition-all text-xs cursor-pointer"
+              >
+                <Trophy size={14} />
+                {dailyChallengeDone ? "Completed Today" : "Play Daily Challenge Quiz"}
+              </button>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Quick Actions */}
         <motion.div
