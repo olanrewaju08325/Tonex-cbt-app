@@ -4,7 +4,7 @@ import {
   Users, BookOpen, GraduationCap, DollarSign, TrendingUp, BarChart2,
   Plus, Edit2, Trash2, Eye, EyeOff, Upload, Search,
   LayoutDashboard, FileQuestion, Building2, Tag, UserCheck, LogOut, X,
-  AlertTriangle, Settings, Shield, Check, Clock, Globe, FileText, Megaphone, Layers
+  AlertTriangle, Settings, Shield, Check, Clock, Globe, FileText, Megaphone, Layers, Mail
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -28,6 +28,7 @@ import { AnnouncementsView } from "../components/admin/AnnouncementsView";
 import { RevenueAnalytics } from "../components/admin/RevenueAnalytics";
 import { FlaggedQuestionsView } from "../components/admin/FlaggedQuestionsView";
 import { AdminLogsView } from "../components/admin/AdminLogsView";
+import { EmailBroadcastView } from "../components/admin/EmailBroadcastView";
 import { FlashcardsView } from "../components/admin/FlashcardsView";
 
 interface AdminUser {
@@ -81,6 +82,7 @@ const NAV_ITEMS = [
   { id: "users", label: "Users", icon: UserCheck },
   { id: "subscriptions", label: "Subscriptions", icon: DollarSign },
   { id: "activity_logs", label: "Activity Logs", icon: Shield },
+  { id: "email_broadcast", label: "Email Broadcast", icon: Mail },
   { id: "site_settings", label: "Site Settings", icon: Globe },
 ];
 
@@ -884,6 +886,7 @@ export function AdminPage() {
       case "material_upload": return <MaterialUploadView />;
       case "flagged":         return <FlaggedQuestionsView />;
       case "activity_logs":   return <AdminLogsView />;
+      case "email_broadcast": return <EmailBroadcastView />;
       case "site_settings":   return <SiteSettingsView />;
       default:                return null;
     }

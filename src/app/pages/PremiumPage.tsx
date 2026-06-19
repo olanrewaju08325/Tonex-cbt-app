@@ -60,6 +60,7 @@ const PLAN_FEATURES: Record<string, { label: string; description: string; icon: 
     { icon: Zap, label: "Full Insights Dashboard", description: "Unlock weak topic recommendations" },
     { icon: Trophy, label: "Full Leaderboard Access", description: "Compete globally and by university" },
     { icon: Bookmark, label: "Unlimited Bookmarks", description: "Save and categorize tricky questions" },
+    { icon: Trophy, label: "AI Admission Predictor (Coming Soon)", description: "Analyze probability of gaining admission" },
   ],
   yearly: [
     { icon: BookOpen, label: "Everything in Quarterly", description: "All monthly and quarterly features included" },

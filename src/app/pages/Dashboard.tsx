@@ -4,8 +4,10 @@ import { motion } from "motion/react";
 import {
   BookOpen, BarChart2, RotateCcw, Trophy, Crown, Clock,
   CheckCircle, XCircle, TrendingUp, ChevronRight, Zap, Users, Calendar, Layers, MessageCircle,
-  Calculator, Award, Bookmark
+  Calculator, Award, Bookmark, Brain, Mail
 } from "lucide-react";
+import { supabase } from "../../lib/supabase";
+import { toast } from "sonner";
 import { RadialBarChart, RadialBar, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useAuth } from "../../contexts/AuthContext";
 import { useUserStats } from "../../lib/hooks/useUserStats";
@@ -20,6 +22,8 @@ const QUICK_ACTIONS = [
   { label: "Saved Questions", icon: Bookmark, path: "/bookmarks", color: "#EC4899", bg: "#EC489915", description: "Review saved items" },
   { label: "Aggregate Calculator", icon: Calculator, path: "/aggregate-calculator", color: "#F59E0B", bg: "#F59E0B15", description: "Screening score calc" },
   { label: "Cut-Off Marks", icon: Award, path: "/cut-offs", color: "#10B981", bg: "#10B98115", description: "Merit marks check" },
+  { label: "Admission Predictor", icon: Brain, path: "/admission-predictor", color: "#A78BFA", bg: "#A78BFA15", description: "AI admission probability" },
+  { label: "Email Study Report", icon: Mail, path: "email_report", color: "#06B6D4", bg: "#06B6D415", description: "Send stats via email" },
   { label: "Review Mistakes", icon: RotateCcw, path: "/review", color: "#EF4444", bg: "#EF444415", description: "Learn from errors" },
   { label: "Study Flashcards", icon: Layers, path: "/flashcards", color: "#3B82F6", bg: "#3B82F615", description: "Memorize key terms" },
   { label: "Peer Challenges", icon: Users, path: "/challenges", color: "#A78BFA", bg: "#A78BFA15", description: "Challenge friends" },
@@ -38,7 +42,8 @@ const TABS = [
   { id: "calculator", label: "Calculator" },
   { id: "cutoffs", label: "Cut-Off Marks" },
   { id: "analytics", label: "Analytics" },
-  { id: "bookmarks", label: "Saved Questions" }
+  { id: "bookmarks", label: "Saved Questions" },
+  { id: "predictor", label: "AI Predictor" }
 ];
 
 export function Dashboard() {
@@ -54,8 +59,91 @@ export function Dashboard() {
     }
   };
 
-  const { profile, loading: authLoading } = useAuth();
-  const { data: stats, isLoading: statsLoading } = useUserStats();
+  const { user, profile, loading: authLoading } = useAuth();
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const handleSendEmailReport = async () => {
+    if (sendingEmail) return;
+    setSendingEmail(true);
+    const toastId = toast.loading("Generating and emailing your study report...");
+    try {
+      const email = profile?.email || user?.email;
+      const name = profile?.full_name || "Student";
+      
+      // Fetch target university short name safely
+      let targetUni = "Custom Target";
+      if (profile?.target_university_id) {
+        const { data: uniData } = await supabase
+          .from("universities")
+          .select("short_name")
+          .eq("id", profile.target_university_id)
+          .single();
+        if (uniData?.short_name) {
+          targetUni = uniData.short_name;
+        }
+      }
+
+      const testsTaken = displayStats?.tests_taken || 0;
+      const avgScore = Math.round(displayStats?.avg_score || 0);
+      const correctAnswers = displayStats?.correct_answers || 0;
+      const streakCount = displayStats?.streak_count || 0;
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; background-color: #08142D; color: #ffffff; padding: 30px; border-radius: 20px; max-width: 600px; margin: 0 auto; border: 1px solid rgba(255, 255, 255, 0.08);">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #60A5FA; margin-bottom: 5px;">Tonex CBT</h2>
+            <p style="color: #64748B; font-size: 14px; margin-top: 0;">Your Post-UTME Practice Partner</p>
+          </div>
+          <div style="background-color: #0F172A; padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.05);">
+            <h3 style="color: #ffffff; margin-top: 0;">Weekly Study Performance</h3>
+            <p style="font-size: 14px; color: #94A3B8;">Hello <strong>\${name}</strong>, here is a breakdown of your CBT mock exam statistics and study progress on Tonex CBT.</p>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: #94A3B8; font-size: 14px;">Target University</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: #ffffff; text-align: right; font-weight: bold; font-size: 14px;">\${targetUni}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: #94A3B8; font-size: 14px;">CBT Practice Tests Taken</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: #ffffff; text-align: right; font-weight: bold; font-size: 14px;">\${testsTaken}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: #94A3B8; font-size: 14px;">Average Mock Score</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: #22C55E; text-align: right; font-weight: bold; font-size: 14px;">\${avgScore}%</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: #94A3B8; font-size: 14px;">Correct Answers</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: #7C3AED; text-align: right; font-weight: bold; font-size: 14px;">\${correctAnswers}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #94A3B8; font-size: 14px;">Active Daily Streak</td>
+                <td style="padding: 10px 0; color: #F59E0B; text-align: right; font-weight: bold; font-size: 14px;">🔥 \${streakCount} Days</td>
+              </tr>
+            </table>
+          </div>
+          <div style="text-align: center; color: #64748B; font-size: 12px; margin-top: 30px;">
+            <p>Keep up the consistency! Log in daily to complete flashcards and full-length CBT exams.</p>
+            <p style="margin-top: 10px;">&copy; 2026 Tonex CBT. All rights reserved.</p>
+          </div>
+        </div>
+      `;
+
+      const { data, error } = await supabase.rpc("send_email_via_brevo", {
+        recipient_email: email,
+        recipient_name: name,
+        subject: "Your Tonex CBT Weekly Study Report 📚",
+        html_content: emailHtml
+      });
+
+      if (error) throw error;
+      toast.success("Study report emailed successfully to " + email, { id: toastId });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send email report", { id: toastId });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const { data: sessions, isLoading: sessionsLoading } = useExamSessions(5);
   const { data: announcements } = useAnnouncements(1);
   const { data: topStudents, isLoading: leaderboardLoading } = useLeaderboard(profile?.target_university_id);
@@ -275,7 +363,7 @@ export function Dashboard() {
           className="mb-6"
         >
           <h2 className="text-white font-bold text-lg mb-3">Quick Actions</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {QUICK_ACTIONS.map((action, i) => (
               <button
                 key={i}
@@ -288,6 +376,10 @@ export function Dashboard() {
                     setActiveTab("analytics");
                   } else if (action.path === "/bookmarks") {
                     setActiveTab("bookmarks");
+                  } else if (action.path === "/admission-predictor") {
+                    setActiveTab("predictor");
+                  } else if (action.path === "email_report") {
+                    handleSendEmailReport();
                   } else {
                     navigate(action.path);
                   }
@@ -584,6 +676,43 @@ export function Dashboard() {
         {activeTab === "cutoffs" && <CutOffMarksPage />}
         {activeTab === "analytics" && <AnalyticsPage />}
         {activeTab === "bookmarks" && <BookmarksPage />}
+        {activeTab === "predictor" && (
+          <div className="bg-[#0F172A] border border-white/6 rounded-3xl p-8 text-center max-w-lg mx-auto shadow-2xl relative overflow-hidden mt-4 md:mt-0">
+            {/* Background Glow */}
+            <div className="absolute -top-12 -left-12 w-36 h-36 bg-[#EC4899]/15 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="w-16 h-16 rounded-2xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <Brain className="text-[#F43F5E]" size={32} />
+            </div>
+            
+            <h2 className="text-white font-extrabold text-xl mb-2 font-['Manrope']">AI Admission Predictor</h2>
+            <span className="bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/20 text-[10px] px-3 py-1 rounded-full font-bold uppercase inline-block mb-5">
+              Coming Soon · Premium Feature
+            </span>
+            
+            <p className="text-[#94A3B8] text-sm leading-relaxed mb-6">
+              Our upcoming AI model will analyze your complete CBT practice history, O'Level grade points, and target university configs against historical cut-off marks to predict your real-time probability of admission.
+            </p>
+            
+            <div className="bg-[#1E293B]/60 border border-white/5 rounded-2xl p-4 text-left text-xs text-[#64748B] mb-6 space-y-2">
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#EF4444] mt-1.5 shrink-0" />
+                <span>🔒 This feature requires the <strong>Quarterly (₦6,500)</strong> plan or above.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#64748B] mt-1.5 shrink-0" />
+                <span>Will go live automatically as soon as the API keys are configured.</span>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => navigate("/premium")}
+              className="w-full sm:w-auto bg-gradient-to-r from-[#2563EB] to-[#0B3D91] hover:from-[#1D4ED8] text-white font-bold px-8 py-3.5 rounded-xl hover:-translate-y-0.5 transition-all shadow-md shadow-blue-500/20 text-xs"
+            >
+              Upgrade Plan to Access
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
