@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   CheckCircle, Crown, Copy, MessageCircle, ArrowRight, ArrowLeft,
@@ -7,7 +7,8 @@ import {
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
-import { useCreateSubscription } from "../../lib/hooks/useSubscription";
+import { useSubscription, useCreateSubscription } from "../../lib/hooks/useSubscription";
+import { calculateUpgradeProration } from "../../lib/proration";
 import { BANK_DETAILS } from "../../lib/manualPayment";
 import { supabase } from "../../lib/supabase";
 
@@ -89,10 +90,117 @@ export function PremiumPage() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const { user, profile } = useAuth();
   const { mutateAsync: createSubscription } = useCreateSubscription();
+  const { data: activeSub } = useSubscription();
+
+  // Load Paystack inline SDK
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const plan = PLANS.find((p) => p.id === selectedPlan)!;
 
   const stepIndex: Record<Step, number> = { plans: 0, instructions: 1, submit: 2 };
+
+  const getProratedInfo = (planId: string, basePrice: number) => {
+    if (!activeSub || activeSub.status !== 'active' || !activeSub.plan || activeSub.plan === planId) {
+      return { amountToPay: basePrice, discount: 0 };
+    }
+    // Upgrades allowed: monthly -> quarterly, monthly -> yearly, quarterly -> yearly
+    const upgradePaths: Record<string, string[]> = {
+      monthly: ['quarterly', 'yearly'],
+      quarterly: ['yearly'],
+      yearly: []
+    };
+    const allowedUpgrades = upgradePaths[activeSub.plan] || [];
+    if (!allowedUpgrades.includes(planId)) {
+      return { amountToPay: basePrice, discount: 0 };
+    }
+
+    try {
+      const proration = calculateUpgradeProration(
+        activeSub.plan,
+        planId,
+        activeSub.starts_at,
+        activeSub.expires_at,
+        new Date()
+      );
+      return {
+        amountToPay: proration.amountToPay,
+        discount: proration.unusedValue
+      };
+    } catch (e) {
+      return { amountToPay: basePrice, discount: 0 };
+    }
+  };
+
+  const handlePaystackPayment = () => {
+    if (!user) {
+      toast.error("Please login to subscribe.");
+      return;
+    }
+
+    const { amountToPay } = getProratedInfo(selectedPlan, plan.priceValue);
+
+    if (!(window as any).PaystackPop) {
+      toast.error("Payment gateway is loading, please try again in a few seconds.");
+      return;
+    }
+
+    setSubmitting(true);
+    const handler = (window as any).PaystackPop.setup({
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_41c0e86b0337f714275a593e7f4153097bbf67b8',
+      email: user.email,
+      amount: amountToPay * 100, // Paystack is in kobo
+      currency: 'NGN',
+      ref: 'tonex_' + Math.floor(Math.random() * 1000000000 + 1),
+      metadata: {
+        custom_fields: [
+          {
+            display_name: "Plan ID",
+            variable_name: "plan",
+            value: selectedPlan
+          },
+          {
+            display_name: "User ID",
+            variable_name: "user_id",
+            value: user.id
+          }
+        ]
+      },
+      callback: async (response: any) => {
+        toast.promise(
+          (async () => {
+            const { data, error } = await supabase.rpc("verify_paystack_payment", {
+              p_reference: response.reference
+            });
+            if (error) throw error;
+            return data;
+          })(),
+          {
+            loading: 'Verifying payment and activating premium...',
+            success: () => {
+              navigate("/dashboard");
+              return "🎉 Premium subscription activated instantly!";
+            },
+            error: (err) => `Verification failed: ${err.message || 'Please contact support.'}`
+          }
+        );
+        setSubmitting(false);
+      },
+      onClose: () => {
+        setSubmitting(false);
+        toast.info("Payment window closed.");
+      }
+    });
+
+    handler.openIframe();
+  };
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -157,9 +265,11 @@ export function PremiumPage() {
 
       setUploadProgress(95);
 
+      const { amountToPay } = getProratedInfo(selectedPlan, plan.priceValue);
+
       await createSubscription({
         plan: selectedPlan,
-        amount: plan.priceValue,
+        amount: amountToPay,
         payment_reference: reference.trim(),
         payment_proof_url: publicUrl,
       });
@@ -167,7 +277,7 @@ export function PremiumPage() {
       setUploadProgress(100);
 
       const message = encodeURIComponent(
-        `Hello, I just made a payment for Tonex CBT ${plan.name} plan (₦${plan.priceValue.toLocaleString()}).\n\nName: ${profile?.full_name}\nEmail: ${user?.email}\nTransfer Reference: ${reference.trim()}\n\nPlease activate my account. Thank you.`
+        `Hello, I just made a payment for Tonex CBT ${plan.name} plan (₦${amountToPay.toLocaleString()}).\n\nName: ${profile?.full_name}\nEmail: ${user?.email}\nTransfer Reference: ${reference.trim()}\n\nPlease activate my account. Thank you.`
       );
       window.open(`${BANK_DETAILS.whatsappLink}?text=${message}`, "_blank");
       toast.success("Payment request submitted. Your account will be activated within 24 hours.");
@@ -180,8 +290,8 @@ export function PremiumPage() {
     }
   };
 
-  // Already premium
-  if (profile?.is_premium) {
+  // Already premium and highest tier
+  if (profile?.is_premium && activeSub?.plan === 'yearly') {
     return (
       <div className="min-h-screen bg-[#08142D] px-4 py-6 flex items-center justify-center">
         <div className="text-center max-w-sm">
@@ -242,37 +352,54 @@ export function PremiumPage() {
             <motion.div key="plans" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
               {/* Plan cards */}
               <div className="flex gap-3 mb-6">
-                {PLANS.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedPlan(p.id as "monthly" | "quarterly" | "yearly")}
-                    className={`flex-1 relative py-4 px-3 rounded-2xl border transition-all text-center ${
-                      selectedPlan === p.id
-                        ? p.highlight
-                          ? "bg-gradient-to-b from-[#0B3D91]/50 to-[#2563EB]/20 border-[#2563EB]/50"
-                          : "bg-[#1E293B]/60 border-[#2563EB]/40"
-                        : "bg-[#0F172A] border-white/6 hover:border-white/12"
-                    }`}
-                  >
-                    {p.badge && (
-                      <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-black px-2 py-0.5 rounded-full whitespace-nowrap ${
-                        p.highlight ? "bg-[#F59E0B] text-[#08142D]" : "bg-[#2563EB]/30 text-[#60A5FA] border border-[#2563EB]/40"
-                      }`}>
-                        {p.badge}
+                {PLANS.map((p) => {
+                  const { amountToPay, discount } = getProratedInfo(p.id, p.priceValue);
+                  const isCurrentPlan = activeSub?.status === 'active' && activeSub.plan === p.id;
+                  
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedPlan(p.id as "monthly" | "quarterly" | "yearly")}
+                      disabled={isCurrentPlan}
+                      className={`flex-1 relative py-4 px-3 rounded-2xl border transition-all text-center ${
+                        isCurrentPlan
+                          ? "bg-[#1E293B]/30 border-white/5 opacity-50 cursor-not-allowed text-center"
+                          : selectedPlan === p.id
+                            ? p.highlight
+                              ? "bg-gradient-to-b from-[#0B3D91]/50 to-[#2563EB]/20 border-[#2563EB]/50"
+                              : "bg-[#1E293B]/60 border-[#2563EB]/40"
+                            : "bg-[#0F172A] border-white/6 hover:border-white/12"
+                      }`}
+                    >
+                      {isCurrentPlan && (
+                        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30 whitespace-nowrap">
+                          Active Plan
+                        </div>
+                      )}
+                      {p.badge && !isCurrentPlan && (
+                        <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-black px-2 py-0.5 rounded-full whitespace-nowrap ${
+                          p.highlight ? "bg-[#F59E0B] text-[#08142D]" : "bg-[#2563EB]/30 text-[#60A5FA] border border-[#2563EB]/40"
+                        }`}>
+                          {p.badge}
+                        </div>
+                      )}
+                      <div className={`text-xs font-semibold mb-1 ${selectedPlan === p.id ? "text-[#94A3B8]" : "text-[#475569]"}`}>
+                        {p.name}
                       </div>
-                    )}
-                    <div className={`text-xs font-semibold mb-1 ${selectedPlan === p.id ? "text-[#94A3B8]" : "text-[#475569]"}`}>
-                      {p.name}
-                    </div>
-                    <div className={`font-extrabold text-base font-['Manrope'] ${selectedPlan === p.id ? "text-white" : "text-[#64748B]"}`}>
-                      {p.price}
-                    </div>
-                    <div className="text-[#475569] text-[10px]">{p.period}</div>
-                    {p.savings && (
-                      <div className="text-[#22C55E] text-[10px] font-semibold mt-0.5">{p.savings}</div>
-                    )}
-                  </button>
-                ))}
+                      <div className={`font-extrabold text-base font-['Manrope'] ${selectedPlan === p.id ? "text-white" : "text-[#64748B]"}`}>
+                        {discount > 0 ? `₦${amountToPay.toLocaleString()}` : p.price}
+                      </div>
+                      <div className="text-[#475569] text-[10px]">{p.period}</div>
+                      {isCurrentPlan ? (
+                        <div className="text-[#64748B] text-[9px] font-medium mt-1">Current Active</div>
+                      ) : discount > 0 ? (
+                        <div className="text-[#22C55E] text-[9px] font-bold mt-1">Upgrade Discount: ₦{discount.toLocaleString()}</div>
+                      ) : p.savings ? (
+                        <div className="text-[#22C55E] text-[10px] font-semibold mt-0.5">{p.savings}</div>
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Features */}
@@ -294,17 +421,29 @@ export function PremiumPage() {
                 </div>
               </div>
 
-              <button
-                onClick={() => setStep("instructions")}
-                className="w-full bg-gradient-to-r from-[#2563EB] to-[#0B3D91] hover:from-[#1D4ED8] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-1 text-base mb-3"
-              >
-                Proceed to Payment — {plan.price}
-                <ArrowRight size={18} />
-              </button>
+              <div className="space-y-3 mb-6">
+                <button
+                  onClick={handlePaystackPayment}
+                  disabled={submitting}
+                  className="w-full bg-gradient-to-r from-[#F59E0B] to-[#D97706] hover:brightness-110 disabled:opacity-60 text-[#08142D] font-extrabold py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-amber-500/10 transition-all hover:-translate-y-0.5 text-base cursor-pointer"
+                >
+                  <Crown size={18} className="fill-[#08142D]" />
+                  Pay Online Instantly — ₦{getProratedInfo(selectedPlan, plan.priceValue).amountToPay.toLocaleString()}
+                </button>
+                
+                <button
+                  onClick={() => setStep("instructions")}
+                  disabled={submitting}
+                  className="w-full bg-[#1E293B] hover:bg-[#1E293B]/80 text-[#94A3B8] hover:text-white border border-white/5 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all text-sm cursor-pointer"
+                >
+                  Or Pay via Manual Bank Transfer (24hr Activation)
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+
               <div className="flex items-center justify-center gap-4 text-[#475569] text-xs">
-                <span className="flex items-center gap-1"><Shield size={11} /> Secure</span>
-                <span className="flex items-center gap-1"><Clock size={11} /> Activated within 24hrs</span>
-                <span className="flex items-center gap-1"><CheckCircle size={11} /> Manual verification</span>
+                <span className="flex items-center gap-1"><Shield size={11} /> Secure Payment Gateway</span>
+                <span className="flex items-center gap-1"><Clock size={11} /> Instant Setup</span>
               </div>
             </motion.div>
           )}
@@ -324,7 +463,9 @@ export function PremiumPage() {
                 <div className="space-y-1">
                   <div className="bg-[#1E293B]/60 rounded-xl p-4 mb-4">
                     <div className="text-[#475569] text-xs mb-1">Amount to Transfer</div>
-                    <div className="text-[#22C55E] text-2xl font-extrabold font-['Manrope']">{plan.price}</div>
+                    <div className="text-[#22C55E] text-2xl font-extrabold font-['Manrope']">
+                      ₦{getProratedInfo(selectedPlan, plan.priceValue).amountToPay.toLocaleString()}
+                    </div>
                     <div className="text-[#475569] text-xs">{plan.name} Plan</div>
                   </div>
 
@@ -449,7 +590,9 @@ export function PremiumPage() {
                     <div className="text-[#475569] text-xs mb-2">Payment Summary</div>
                     <div className="flex justify-between">
                       <span className="text-[#94A3B8] text-sm">{plan.name} Plan</span>
-                      <span className="text-white font-bold text-sm">{plan.price}</span>
+                      <span className="text-white font-bold text-sm">
+                        ₦{getProratedInfo(selectedPlan, plan.priceValue).amountToPay.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>

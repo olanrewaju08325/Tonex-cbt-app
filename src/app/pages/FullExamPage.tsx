@@ -80,10 +80,22 @@ export function FullExamPage() {
     });
   };
 
-  const handleStart = () => {
+  const { updateProfile } = useAuth();
+  const isFreeTrialAvailable = !profile?.is_premium && !profile?.has_used_free_trial_token;
+
+  const handleStart = async () => {
     if (selectedSubjects.length !== numSubjects) {
       toast.error(`Please select exactly ${numSubjects} subjects`);
       return;
+    }
+    
+    if (isFreeTrialAvailable) {
+      const { error } = await updateProfile({ has_used_free_trial_token: true });
+      if (error) {
+        toast.error("Failed to redeem your free trial token. Please try again.");
+        return;
+      }
+      toast.success("🎫 One-Time Trial Mock Exam Token redeemed!");
     }
     
     if (savePreset) {
@@ -128,7 +140,7 @@ export function FullExamPage() {
     return <div className="p-8 max-w-2xl mx-auto"><Skeleton className="h-64 bg-[#1E293B] rounded-2xl w-full" /></div>;
   }
 
-  if (!profile?.is_premium) {
+  if (!profile?.is_premium && !isFreeTrialAvailable) {
     return (
       <div className="p-8 max-w-2xl mx-auto text-center mt-20 bg-[#0F172A] border border-white/5 rounded-2xl shadow-xl">
         <div className="w-16 h-16 rounded-2xl bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center mx-auto mb-4 animate-pulse">
@@ -169,6 +181,18 @@ export function FullExamPage() {
       </div>
 
       <div className="bg-[#0F172A] border border-white/5 rounded-2xl p-6 mb-6">
+        {isFreeTrialAvailable && (
+          <div className="bg-[#2563EB]/10 border border-[#2563EB]/25 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <Crown className="text-[#60A5FA] shrink-0 mt-0.5" size={18} />
+            <div>
+              <h4 className="text-white font-bold text-xs">One-Time Trial Token Available!</h4>
+              <p className="text-[#94A3B8] text-[11px] mt-0.5 leading-relaxed">
+                You can practice exactly one full exam mock simulation for free. Starting the exam will redeem and consume this token.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-[#1E293B] rounded-xl p-4 text-center">
             <BookOpen size={20} className="mx-auto text-[#60A5FA] mb-2" />

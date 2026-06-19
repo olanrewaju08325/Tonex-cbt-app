@@ -2,7 +2,8 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import {
   Mail, Phone, MapPin, Clock, BookOpen,
-  ChevronRight, Crown, Settings, LogOut, Bell, Shield, Edit2, CheckCircle, Award, MessageCircle
+  ChevronRight, Crown, Settings, LogOut, Bell, Shield, Edit2, CheckCircle, Award, MessageCircle,
+  Printer, X
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -29,6 +30,24 @@ export function ProfilePage() {
         .from('user_badges')
         .select('*')
         .eq('user_id', user.id);
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const [activeInvoice, setActiveInvoice] = useState<any | null>(null);
+
+  // Fetch subscription history
+  const { data: subscriptionHistory = [] } = useQuery({
+    queryKey: ['subscriptionHistory', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       if (error) return [];
       return data || [];
     },
@@ -333,6 +352,49 @@ export function ProfilePage() {
           </div>
         </motion.div>
 
+        {/* Subscription History & Billing Receipt Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="bg-[#0F172A] border border-white/6 rounded-2xl p-5 mb-5"
+        >
+          <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+            <Printer size={16} className="text-[#60A5FA]" /> Subscription History &amp; Invoices
+          </h3>
+          <div className="space-y-3">
+            {subscriptionHistory.map((sub: any) => (
+              <div key={sub.id} className="flex items-center justify-between py-2 border-b border-white/4 last:border-0">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white font-bold text-sm capitalize">{sub.plan} Plan</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                      sub.status === 'active' ? 'bg-[#22C55E]/15 text-[#22C55E]' :
+                      sub.status === 'pending' ? 'bg-[#F59E0B]/15 text-[#F59E0B]' :
+                      'bg-red-500/15 text-red-500'
+                    }`}>
+                      {sub.status}
+                    </span>
+                  </div>
+                  <div className="text-[#64748B] text-[10px] font-mono mt-0.5 font-semibold">Ref: {sub.payment_reference || "N/A"}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-white text-xs font-bold">₦{(sub.amount || 0).toLocaleString()}</span>
+                  <button
+                    onClick={() => setActiveInvoice(sub)}
+                    className="bg-[#1E293B] hover:bg-[#2563EB]/25 text-[#CBD5E1] hover:text-[#60A5FA] text-[10px] font-bold px-2.5 py-1 rounded transition-all border border-white/5 cursor-pointer"
+                  >
+                    Invoice
+                  </button>
+                </div>
+              </div>
+            ))}
+            {!subscriptionHistory.length && (
+              <div className="text-[#64748B] text-xs">No billing history found.</div>
+            )}
+          </div>
+        </motion.div>
+
         {/* Settings & actions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -453,6 +515,126 @@ export function ProfilePage() {
           </button>
         </motion.div>
       </div>
+
+      {/* Invoice Modal Overlay */}
+      {activeInvoice && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print-invoice-modal">
+          <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-6 max-w-md w-full relative print:border-0 print:p-0 print:bg-white invoice-container">
+            <style dangerouslySetInnerHTML={{__html: `
+              @media print {
+                body {
+                  background: white !important;
+                  color: black !important;
+                }
+                .print-invoice-modal {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                  height: auto;
+                  background: white !important;
+                  z-index: 9999;
+                  padding: 0 !important;
+                  display: block !important;
+                }
+                .invoice-container {
+                  border: none !important;
+                  box-shadow: none !important;
+                  background: white !important;
+                  color: black !important;
+                  max-w: 100% !important;
+                  width: 100% !important;
+                  padding: 0 !important;
+                }
+                .print-btn, .close-btn {
+                  display: none !important;
+                }
+                .invoice-header {
+                  color: black !important;
+                }
+                .invoice-text-muted {
+                  color: #4A5568 !important;
+                }
+                .invoice-table-header {
+                  background-color: #EDF2F7 !important;
+                  color: black !important;
+                }
+                .invoice-table-row {
+                  border-bottom: 1px solid #E2E8F0 !important;
+                }
+              }
+            `}} />
+            
+            <button 
+              onClick={() => setActiveInvoice(null)}
+              className="absolute top-4 right-4 text-[#64748B] hover:text-white close-btn cursor-pointer"
+              title="Close Modal"
+            >
+              <X size={18} />
+            </button>
+            
+            <div className="text-center pb-4 border-b border-white/5 print:border-black mb-4">
+              <div className="text-white print:text-black font-extrabold text-lg tracking-wide uppercase invoice-header">Tonex CBT</div>
+              <div className="text-[#64748B] text-xs invoice-text-muted">Official Payment Receipt &amp; Invoice</div>
+            </div>
+
+            <div className="space-y-3 text-xs mb-6 text-[#CBD5E1] print:text-black">
+              <div className="flex justify-between">
+                <span className="text-[#64748B] invoice-text-muted">Transaction Ref:</span>
+                <span className="font-mono font-bold text-white print:text-black">{activeInvoice.payment_reference || "N/A"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#64748B] invoice-text-muted">Payment Date:</span>
+                <span className="font-medium">{new Date(activeInvoice.created_at).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#64748B] invoice-text-muted">Recipient Name:</span>
+                <span className="font-medium text-white print:text-black">{profile.full_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#64748B] invoice-text-muted">Email:</span>
+                <span className="font-medium">{profile.email}</span>
+              </div>
+            </div>
+
+            <div className="border border-white/5 rounded-xl overflow-hidden mb-6 print:border-black">
+              <div className="grid grid-cols-3 bg-[#1E293B] px-4 py-2 text-[10px] font-bold text-[#94A3B8] uppercase invoice-table-header">
+                <span>Plan Description</span>
+                <span className="text-center">Status</span>
+                <span className="text-right">Amount</span>
+              </div>
+              <div className="grid grid-cols-3 px-4 py-3 text-xs items-center border-t border-white/5 print:border-black invoice-table-row">
+                <span className="text-white print:text-black font-semibold capitalize">{activeInvoice.plan} Plan</span>
+                <span className="text-center">
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                    activeInvoice.status === 'active' ? 'bg-[#22C55E]/20 text-[#22C55E]' :
+                    activeInvoice.status === 'pending' ? 'bg-[#F59E0B]/20 text-[#F59E0B]' :
+                    'bg-red-500/20 text-red-500'
+                  }`}>
+                    {activeInvoice.status}
+                  </span>
+                </span>
+                <span className="text-right text-white print:text-black font-extrabold">₦{(activeInvoice.amount || 0).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.print()}
+                className="flex-1 bg-[#2563EB] hover:bg-[#1D4ED8] text-white py-3 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/10 flex items-center justify-center gap-1.5 print-btn cursor-pointer"
+              >
+                <Printer size={14} /> Download PDF / Print
+              </button>
+              <button
+                onClick={() => setActiveInvoice(null)}
+                className="flex-1 bg-[#1E293B] hover:bg-white/5 text-[#CBD5E1] py-3 rounded-xl text-xs font-bold border border-white/5 transition-all close-btn cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
