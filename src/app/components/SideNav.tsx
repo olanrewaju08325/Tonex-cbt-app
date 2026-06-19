@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { 
   Home, BookOpen, BarChart2, User, Crown, Trophy, FileText, 
@@ -28,6 +29,18 @@ export function SideNav() {
   const location = useLocation();
   const { profile } = useAuth();
   const { data: subscription } = useSubscription();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 flex-col bg-[#0B1829] border-r border-white/6 z-40">
@@ -66,6 +79,10 @@ export function SideNav() {
         </nav>
       </div>
       <div className="mt-auto p-6 space-y-4">
+        <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/5 rounded-xl text-xs text-[#64748B] font-semibold">
+          <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-[#22C55E] animate-pulse" : "bg-[#F59E0B]"}`} />
+          <span>System: {isOnline ? "Online" : "Offline Mode"}</span>
+        </div>
         {profile?.is_premium ? (
           <div className="bg-gradient-to-br from-[#F59E0B]/10 to-[#D97706]/10 border border-[#F59E0B]/30 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">

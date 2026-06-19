@@ -1,11 +1,18 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { BookOpen, Search, Download, FileText, ChevronRight, Filter } from "lucide-react";
+import { BookOpen, Search, Download, FileText, ChevronRight, Filter, CheckCircle, Trash2, Bookmark, WifiOff } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSubjects } from "../../lib/hooks/useSubjects";
 import { useUniversities } from "../../lib/hooks/useUniversities";
 import { Skeleton } from "../components/ui/skeleton";
+import { toast } from "sonner";
+import { 
+  cacheMaterial, 
+  getCachedMaterial, 
+  getCachedMaterialsList, 
+  removeCachedMaterial 
+} from "../../lib/offlineCache";
 
 type Material = {
   id: string;
@@ -27,6 +34,75 @@ export function MaterialsPage() {
   const [search, setSearch] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedUni, setSelectedUni] = useState("");
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [cachingId, setCachingId] = useState<string | null>(null);
+
+  // Connection status listener
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
+
+  // Load cached materials list
+  useEffect(() => {
+    const loadCachedList = async () => {
+      const list = await getCachedMaterialsList();
+      setSavedIds(list);
+    };
+    loadCachedList();
+  }, []);
+
+  const handleSaveOffline = async (material: Material) => {
+    if (cachingId) return;
+    setCachingId(material.id);
+    const toastId = toast.loading(`Saving "${material.title}" offline...`);
+    try {
+      const response = await fetch(material.file_url);
+      if (!response.ok) throw new Error("Failed to fetch file");
+      const blob = await response.blob();
+      
+      await cacheMaterial(material.id, material.title, blob);
+      setSavedIds(prev => [...prev, material.id]);
+      toast.success(`"${material.title}" is now available offline!`, { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save material offline. Please check your connection.", { id: toastId });
+    } finally {
+      setCachingId(null);
+    }
+  };
+
+  const handleDeleteCache = async (id: string, title: string) => {
+    try {
+      await removeCachedMaterial(id);
+      setSavedIds(prev => prev.filter(savedId => savedId !== id));
+      toast.success(`Removed "${title}" cache`);
+    } catch (err) {
+      toast.error("Failed to remove material cache");
+    }
+  };
+
+  const handleReadOffline = async (id: string, title: string) => {
+    try {
+      const cached = await getCachedMaterial(id);
+      if (cached && cached.blob) {
+        const objectUrl = URL.createObjectURL(cached.blob);
+        window.open(objectUrl, "_blank");
+      } else {
+        toast.error("Cached file not found locally");
+      }
+    } catch (err) {
+      toast.error("Failed to load local PDF file");
+    }
+  };
 
   useEffect(() => {
     fetchMaterials();
@@ -132,23 +208,75 @@ export function MaterialsPage() {
                     {material.description}
                   </p>
                 )}
-                <div className="mt-auto">
+                <div className="mt-auto space-y-2">
                   {!profile?.is_premium ? (
                     <button 
-                      onClick={() => alert("Please upgrade to Premium to download materials.")}
-                      className="w-full flex items-center justify-center gap-2 bg-[#1E293B] text-[#94A3B8] px-4 py-2.5 rounded-xl text-sm font-semibold hover:text-white transition-all border border-white/5 group-hover:border-[#F59E0B]/30 group-hover:bg-[#F59E0B]/10 group-hover:text-[#F59E0B]"
+                      onClick={() => toast.error("Please upgrade to Premium to download materials.")}
+                      className="w-full flex items-center justify-center gap-2 bg-[#1E293B] text-[#94A3B8] px-4 py-2.5 rounded-xl text-sm font-semibold hover:text-white transition-all border border-white/5 group-hover:border-[#F59E0B]/30 group-hover:bg-[#F59E0B]/10 group-hover:text-[#F59E0B] cursor-pointer"
                     >
                       Premium Only
                     </button>
                   ) : (
-                    <a
-                      href={material.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 bg-[#2563EB]/10 hover:bg-[#2563EB]/20 text-[#60A5FA] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-[#2563EB]/20 hover:border-[#2563EB]/40"
-                    >
-                      <Download size={16} /> Download PDF
-                    </a>
+                    <>
+                      {isOnline ? (
+                        <div className="flex flex-col gap-2">
+                          <a
+                            href={material.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full flex items-center justify-center gap-2 bg-[#2563EB]/10 hover:bg-[#2563EB]/20 text-[#60A5FA] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-[#2563EB]/20 hover:border-[#2563EB]/40"
+                          >
+                            <Download size={16} /> Download PDF
+                          </a>
+                          
+                          {savedIds.includes(material.id) ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 flex items-center justify-center gap-1 bg-[#22C55E]/10 border border-[#22C55E]/20 text-[#22C55E] py-2 px-3 rounded-xl text-xs font-bold">
+                                <CheckCircle size={12} /> Saved Offline
+                              </div>
+                              <button
+                                onClick={() => handleDeleteCache(material.id, material.title)}
+                                className="bg-[#EF4444]/10 hover:bg-[#EF4444]/20 border border-[#EF4444]/20 text-[#EF4444] p-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                title="Delete from Offline cache"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleSaveOffline(material)}
+                              disabled={cachingId !== null}
+                              className="w-full flex items-center justify-center gap-2 bg-[#1E293B] hover:bg-[#2563EB]/10 text-[#94A3B8] hover:text-[#60A5FA] border border-white/5 hover:border-[#2563EB]/20 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              {cachingId === material.id ? (
+                                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              ) : (
+                                <Bookmark size={12} />
+                              )}
+                              Save Offline
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          {savedIds.includes(material.id) ? (
+                            <button
+                              onClick={() => handleReadOffline(material.id, material.title)}
+                              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#22C55E] to-[#16A34A] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-green-500/10 cursor-pointer"
+                            >
+                              <FileText size={16} /> Read Offline PDF
+                            </button>
+                          ) : (
+                            <button
+                              disabled
+                              className="w-full flex items-center justify-center gap-2 bg-[#1E293B]/45 text-[#475569] border border-white/5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-not-allowed"
+                            >
+                              <WifiOff size={16} /> Offline (Not Saved)
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </motion.div>

@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 
 const DB_NAME = "tonex_offline_db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export function openOfflineDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -10,11 +10,25 @@ export function openOfflineDB(): Promise<IDBDatabase> {
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
 
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
+      let questionsStore;
       if (!db.objectStoreNames.contains("questions")) {
-        db.createObjectStore("questions", { keyPath: "id" });
+        questionsStore = db.createObjectStore("questions", { keyPath: "id" });
+      } else {
+        questionsStore = request.transaction!.objectStore("questions");
       }
+      
+      if (!questionsStore.indexNames.contains("subject_id")) {
+        questionsStore.createIndex("subject_id", "subject_id", { unique: false });
+      }
+      if (!questionsStore.indexNames.contains("topic")) {
+        questionsStore.createIndex("topic", "topic", { unique: false });
+      }
+      if (!questionsStore.indexNames.contains("university_id")) {
+        questionsStore.createIndex("university_id", "university_id", { unique: false });
+      }
+
       if (!db.objectStoreNames.contains("subjects")) {
         db.createObjectStore("subjects", { keyPath: "id" });
       }
@@ -23,6 +37,9 @@ export function openOfflineDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains("pending_sessions")) {
         db.createObjectStore("pending_sessions", { keyPath: "local_id", autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains("cached_materials")) {
+        db.createObjectStore("cached_materials", { keyPath: "id" });
       }
     };
   });
@@ -122,15 +139,24 @@ export async function getOfflineQuestions(params: {
     const store = tx.objectStore("questions");
     
     return new Promise((resolve, reject) => {
-      const request = store.getAll();
+      let request;
+      if (params.subjectId) {
+        try {
+          const index = store.index("subject_id");
+          request = index.getAll(params.subjectId);
+        } catch (e) {
+          request = store.getAll();
+        }
+      } else {
+        request = store.getAll();
+      }
+
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         let all = request.result || [];
         
-        // Filter by subject
-        if (params.subjectId) {
-          all = all.filter((q) => q.subject_id === params.subjectId);
-        } else if (params.subjectIds && params.subjectIds.length > 0) {
+        // Filter by subjectIds if subjectId wasn't used
+        if (!params.subjectId && params.subjectIds && params.subjectIds.length > 0) {
           all = all.filter((q) => params.subjectIds!.includes(q.subject_id));
         }
 
@@ -268,4 +294,66 @@ export async function syncOfflineSessions(userId: string): Promise<number> {
   }
   
   return syncedCount;
+}
+
+export async function cacheMaterial(id: string, title: string, blob: Blob) {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction("cached_materials", "readwrite");
+    const store = tx.objectStore("cached_materials");
+    store.put({ id, title, blob, cached_at: new Date().toISOString() });
+    return new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.error("IndexedDB cache material error:", err);
+  }
+}
+
+export async function getCachedMaterial(id: string): Promise<any> {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction("cached_materials", "readonly");
+    const store = tx.objectStore("cached_materials");
+    return new Promise((resolve, reject) => {
+      const request = store.get(id);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result || null);
+    });
+  } catch (err) {
+    console.error("IndexedDB get cached material error:", err);
+    return null;
+  }
+}
+
+export async function getCachedMaterialsList(): Promise<string[]> {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction("cached_materials", "readonly");
+    const store = tx.objectStore("cached_materials");
+    return new Promise((resolve, reject) => {
+      const request = store.getAllKeys();
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve((request.result || []) as string[]);
+    });
+  } catch (err) {
+    console.error("IndexedDB get cached materials keys error:", err);
+    return [];
+  }
+}
+
+export async function removeCachedMaterial(id: string) {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction("cached_materials", "readwrite");
+    const store = tx.objectStore("cached_materials");
+    store.delete(id);
+    return new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.error("IndexedDB delete cached material error:", err);
+  }
 }
