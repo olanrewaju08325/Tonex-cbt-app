@@ -423,21 +423,19 @@ export function PremiumPage() {
 
               <div className="space-y-3 mb-6">
                 <button
-                  onClick={handlePaystackPayment}
-                  disabled={submitting}
-                  className="w-full bg-gradient-to-r from-[#F59E0B] to-[#D97706] hover:brightness-110 disabled:opacity-60 text-[#08142D] font-extrabold py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-amber-500/10 transition-all hover:-translate-y-0.5 text-base cursor-pointer"
-                >
-                  <Crown size={18} className="fill-[#08142D]" />
-                  Pay Online Instantly — ₦{getProratedInfo(selectedPlan, plan.priceValue).amountToPay.toLocaleString()}
-                </button>
-                
-                <button
                   onClick={() => setStep("instructions")}
-                  disabled={submitting}
-                  className="w-full bg-[#1E293B] hover:bg-[#1E293B]/80 text-[#94A3B8] hover:text-white border border-white/5 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all text-sm cursor-pointer"
+                  className="w-full bg-gradient-to-r from-[#2563EB] to-[#0B3D91] hover:brightness-110 text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-blue-500/10 transition-all hover:-translate-y-0.5 text-base cursor-pointer"
                 >
-                  Or Pay via Manual Bank Transfer (24hr Activation)
-                  <ArrowRight size={15} />
+                  Pay via Manual Bank Transfer — ₦{getProratedInfo(selectedPlan, plan.priceValue).amountToPay.toLocaleString()}
+                  <ArrowRight size={18} />
+                </button>
+
+                <button
+                  disabled
+                  className="w-full bg-[#1E293B] text-[#475569] border border-white/5 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all text-sm cursor-not-allowed"
+                >
+                  <Crown size={15} className="text-[#475569]" />
+                  Pay Online Instantly (Coming Soon)
                 </button>
               </div>
 
