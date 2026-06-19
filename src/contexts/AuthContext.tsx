@@ -134,8 +134,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
+    // Client-side Session Auto-Refresh Pre-emptive Check (every 60 seconds)
+    const refreshInterval = setInterval(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.expires_at) {
+        const timeToExpiry = session.expires_at - Math.floor(Date.now() / 1000);
+        // If session expires in less than 10 minutes (600 seconds), refresh it pre-emptively
+        if (timeToExpiry > 0 && timeToExpiry < 600) {
+          console.log(`Pre-emptively refreshing session. Time to expiry: ${timeToExpiry}s`);
+          const { error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.error("Failed to auto-refresh session:", error.message);
+          } else {
+            console.log("Session refreshed successfully.");
+          }
+        }
+      }
+    }, 60000);
+
     return () => {
       subscription.unsubscribe();
+      clearInterval(refreshInterval);
     };
   }, []);
 

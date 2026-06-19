@@ -128,6 +128,19 @@ export function BulkUploadView() {
             throw error;
           }
           
+          // Log bulk upload action
+          if (user?.id) {
+            await supabase.from("admin_logs").insert({
+              admin_id: user.id,
+              action: "BULK_UPLOAD_QUESTIONS",
+              target_type: "questions",
+              details: {
+                filename: file.name,
+                count: questionsToInsert.length
+              }
+            });
+          }
+
           toast.success(`Successfully uploaded ${questionsToInsert.length} questions!`);
           setFile(null);
           setPreview([]);

@@ -63,13 +63,17 @@ export function useAdminQuestions() {
           year,
           is_published,
           correct_answer,
-          subjects!subject_id (name),
-          universities!university_id (short_name)
+          subject_name,
+          university_name
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data ?? [];
+      return (data || []).map(q => ({
+        ...q,
+        subjects: { name: q.subject_name || "" },
+        universities: { short_name: q.university_name || "" }
+      }));
     },
     retry: 2,
     staleTime: 60_000,

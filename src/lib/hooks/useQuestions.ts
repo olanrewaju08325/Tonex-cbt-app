@@ -32,7 +32,7 @@ export function useQuestions({ universityId, subjectId, subjectIds, limit, topic
       try {
         let query = supabase
           .from('questions')
-          .select('*, subjects(name)')
+          .select('*')
           .eq('is_published', true);
 
         if (subjectId) {
@@ -59,7 +59,10 @@ export function useQuestions({ universityId, subjectId, subjectIds, limit, topic
           );
         }
 
-        let allQuestions = data as (Question & { subjects?: { name: string } })[];
+        let allQuestions = (data || []).map(q => ({
+          ...q,
+          subjects: q.subjects || { name: q.subject_name || '' }
+        })) as (Question & { subjects?: { name: string } })[];
         
         // If we have an array of subjects, we want `limit` questions PER subject
         if (subjectIds && subjectIds.length > 0 && limit) {

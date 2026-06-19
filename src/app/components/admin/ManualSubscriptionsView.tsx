@@ -5,6 +5,7 @@ import {
   Filter, ArrowUpRight
 } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
+import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "sonner";
 import { Skeleton } from "../../components/ui/skeleton";
 import { motion, AnimatePresence } from "motion/react";
@@ -48,6 +49,7 @@ interface Subscription {
 }
 
 export function ManualSubscriptionsView() {
+  const { user } = useAuth();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -68,6 +70,23 @@ export function ManualSubscriptionsView() {
   }, []);
 
   useEffect(() => { fetchSubs(); }, [fetchSubs]);
+
+  const logAction = async (action: string, sub: Subscription) => {
+    if (!user) return;
+    await supabase.from("admin_logs").insert({
+      admin_id: user.id,
+      action,
+      target_type: "subscription",
+      target_id: sub.id,
+      details: {
+        user_email: sub.user_email,
+        user_name: sub.user_name,
+        plan: sub.plan,
+        amount: sub.amount,
+        admin_notes: adminNote || null
+      }
+    });
+  };
 
   const handleApprove = async (sub: Subscription) => {
     if (sub.status === "active") {
@@ -93,6 +112,7 @@ export function ManualSubscriptionsView() {
     if (error) {
       toast.error(`Failed to approve: ${error.message}`);
     } else {
+      await logAction("APPROVE_SUBSCRIPTION", sub);
       toast.success(`✅ Approved! ${sub.user_name || sub.user_email} now has ${sub.plan} access for ${months} month${months > 1 ? "s" : ""}.`);
       setExpandedId(null);
       setAdminNote("");
@@ -111,6 +131,7 @@ export function ManualSubscriptionsView() {
     if (error) {
       toast.error(error.message);
     } else {
+      await logAction("DENY_SUBSCRIPTION", sub);
       toast.success("Subscription denied.");
       setExpandedId(null);
       setAdminNote("");
@@ -130,6 +151,7 @@ export function ManualSubscriptionsView() {
     if (error) {
       toast.error(error.message);
     } else {
+      await logAction("REVOKE_SUBSCRIPTION", sub);
       toast.success("Premium access revoked.");
       fetchSubs();
     }
@@ -155,6 +177,7 @@ export function ManualSubscriptionsView() {
     if (error) {
       toast.error(error.message);
     } else {
+      await logAction("REACTIVATE_SUBSCRIPTION", sub);
       toast.success("Subscription reactivated!");
       fetchSubs();
     }

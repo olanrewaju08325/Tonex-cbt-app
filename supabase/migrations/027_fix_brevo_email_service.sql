@@ -1,15 +1,4 @@
--- 026_brevo_email_service.sql
-
--- Ensure the pg_net HTTP client extension is enabled
-CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;
-
--- Seed Brevo credentials into site_settings
-INSERT INTO site_settings (key, value) VALUES
-('brevo_api_key', '"PLACEHOLDER_BREVO_API_KEY"'::jsonb),
-('sender_email', '"olanrewajuhamilot@gmail.com"'::jsonb)
-ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
-
--- Create Brevo email sender RPC function
+-- Fix Brevo Email service to call net.http_post with correct schema and parameter types
 CREATE OR REPLACE FUNCTION public.send_email_via_brevo(
   recipient_email text,
   recipient_name text,
@@ -23,11 +12,10 @@ AS $$
 DECLARE
   brevo_key text;
   sender_email_val text;
-  req_body jsonb;
+  req_body jsonb; -- Changed from text to jsonb to match pg_net signature
   res_id bigint;
 BEGIN
   -- 1. Security Check: Authenticated standard users can only send emails to their own registered address.
-  -- This prevents malicious actors from exploiting the RPC database function to send spam emails.
   IF NOT is_admin() AND recipient_email != auth.jwt()->>'email' THEN
     RAISE EXCEPTION 'Unauthorized: Standard users can only send email reports to their own registered account email address.';
   END IF;
@@ -40,7 +28,7 @@ BEGIN
     RAISE EXCEPTION 'Configuration Error: Brevo API key or Sender Email parameter is missing in site_settings';
   END IF;
 
-  -- 3. Build API payload
+  -- 3. Build API payload as jsonb
   req_body := jsonb_build_object(
     'sender', jsonb_build_object('name', 'Tonex CBT Support', 'email', sender_email_val),
     'to', jsonb_build_array(jsonb_build_object('email', recipient_email, 'name', recipient_name)),
@@ -48,7 +36,7 @@ BEGIN
     'htmlContent', html_content
   );
 
-  -- 4. Asynchronously dispatch HTTP Post request via pg_net
+  -- 4. Asynchronously dispatch HTTP Post request via pg_net (net.http_post)
   SELECT net.http_post(
     url := 'https://api.brevo.com/v3/smtp/email',
     headers := jsonb_build_object(
