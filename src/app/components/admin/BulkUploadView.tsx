@@ -121,7 +121,12 @@ export function BulkUploadView() {
             };
           });
 
-          const { error } = await adminSupabase.from('questions').insert(questionsToInsert);
+          const { error } = await adminSupabase
+            .from('questions')
+            .upsert(questionsToInsert, {
+              onConflict: 'subject_id,text',
+              ignoreDuplicates: true
+            });
           
           if (error) {
             console.error("Batch insert error:", error);
