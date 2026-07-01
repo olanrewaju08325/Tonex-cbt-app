@@ -30,6 +30,9 @@ import { FlaggedQuestionsView } from "../components/admin/FlaggedQuestionsView";
 import { AdminLogsView } from "../components/admin/AdminLogsView";
 import { EmailBroadcastView } from "../components/admin/EmailBroadcastView";
 import { FlashcardsView } from "../components/admin/FlashcardsView";
+import { HistoricalCutOffsView } from "../components/admin/HistoricalCutOffsView";
+import { TopicTagManagerView } from "../components/admin/TopicTagManagerView";
+import { Award } from "lucide-react";
 
 interface AdminUser {
   id: string;
@@ -77,7 +80,8 @@ const NAV_ITEMS = [
   { id: "bulk_upload", label: "Bulk Upload", icon: Upload },
   { id: "material_upload", label: "Material Upload", icon: FileText },
   { id: "universities", label: "Universities", icon: Building2 },
-  { id: "subjects", label: "Subjects", icon: Tag },
+  { id: "cutoffs", label: "Cut-Off Marks", icon: Award },
+  { id: "subjects", label: "Subjects & Topics", icon: Tag },
   { id: "exam_configs", label: "Exam Configs", icon: Settings },
   { id: "users", label: "Users", icon: UserCheck },
   { id: "subscriptions", label: "Subscriptions", icon: DollarSign },
@@ -133,13 +137,15 @@ function DashboardView() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard label="Total Users" value={stats?.totalUsers.toLocaleString() ?? "—"} icon={Users} color="#2563EB" change="Live" loading={isLoading} />
         <StatCard label="Premium Users" value={stats?.premiumUsers.toLocaleString() ?? "—"} icon={Shield} color="#F59E0B" change="Active" loading={isLoading} />
-        <StatCard label="Questions" value={stats?.totalQuestions.toLocaleString() ?? "—"} icon={BookOpen} color="#7C3AED" change="Total" loading={isLoading} />
+        <StatCard label="Conversion Rate" value={stats && stats.totalUsers > 0 ? `${((stats.premiumUsers / stats.totalUsers) * 100).toFixed(1)}%` : "—"} icon={TrendingUp} color="#A855F7" change="Rate" loading={isLoading} />
         <StatCard label="Revenue" value={stats ? `₦${(stats.revenue / 1000).toFixed(0)}K` : "—"} icon={DollarSign} color="#22C55E" change="Subscriptions" loading={isLoading} />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Universities" value={stats?.universities ?? "—"} icon={GraduationCap} color="#0891B2" change="Active" loading={isLoading} />
-        <StatCard label="New Today" value={stats?.newUsersToday ?? "—"} icon={TrendingUp} color="#EC4899" change="Today" loading={isLoading} />
+        <StatCard label="Active Users Today (DAU)" value={stats?.activeToday ?? "—"} icon={UserCheck} color="#0891B2" change="Today" loading={isLoading} />
+        <StatCard label="New Today" value={stats?.newUsersToday ?? "—"} icon={Plus} color="#EC4899" change="Today" loading={isLoading} />
+        <StatCard label="Questions" value={stats?.totalQuestions.toLocaleString() ?? "—"} icon={BookOpen} color="#7C3AED" change="Total" loading={isLoading} />
+        <StatCard label="Universities" value={stats?.universities ?? "—"} icon={GraduationCap} color="#64748B" change="Active" loading={isLoading} />
       </div>
 
       {/* Chart */}
@@ -878,7 +884,8 @@ export function AdminPage() {
       case "questions":       return <QuestionsView />;
       case "flashcards":      return <FlashcardsView />;
       case "universities":    return <UniversitiesView />;
-      case "subjects":        return <SubjectsView />;
+      case "cutoffs":         return <HistoricalCutOffsView />;
+      case "subjects":        return <TopicTagManagerView />;
       case "users":           return <UsersView />;
       case "subscriptions":   return <ManualSubscriptionsView />;
       case "exam_configs":    return <ExamConfigsView />;

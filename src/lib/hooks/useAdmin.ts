@@ -16,6 +16,7 @@ export function useAdminStats() {
         universities:    Number(data?.total_universities ?? 0),
         newUsersToday:   Number(data?.new_today        ?? 0),
         revenue:         Number(data?.revenue          ?? 0),
+        activeToday:     Number(data?.active_today     ?? 0),
       };
     },
     retry: 2,

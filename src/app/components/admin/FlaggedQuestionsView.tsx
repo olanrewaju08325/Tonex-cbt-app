@@ -28,6 +28,71 @@ export function FlaggedQuestionsView() {
   const [adminNote, setAdminNote] = useState("");
   const [updating, setUpdating] = useState(false);
 
+  // Inline editing state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState("");
+  const [editedA, setEditedA] = useState("");
+  const [editedB, setEditedB] = useState("");
+  const [editedC, setEditedC] = useState("");
+  const [editedD, setEditedD] = useState("");
+  const [editedCorrect, setEditedCorrect] = useState("");
+
+  const startEditing = (flag: any) => {
+    setIsEditing(true);
+    setEditedText(flag.questions?.text || "");
+    setEditedA(flag.questions?.option_a || "");
+    setEditedB(flag.questions?.option_b || "");
+    setEditedC(flag.questions?.option_c || "");
+    setEditedD(flag.questions?.option_d || "");
+    setEditedCorrect(flag.questions?.correct_option || flag.questions?.correct_answer || "A");
+  };
+
+  const saveAndMarkFixed = async (flag: any) => {
+    if (!editedText.trim()) return toast.error("Question text cannot be empty.");
+    if (!editedA.trim() || !editedB.trim() || !editedC.trim() || !editedD.trim()) {
+      return toast.error("All options must be filled.");
+    }
+
+    setUpdating(true);
+    try {
+      // 1. Update the actual question
+      const { error: qError } = await supabase
+        .from("questions")
+        .update({
+          text: editedText,
+          option_a: editedA,
+          option_b: editedB,
+          option_c: editedC,
+          option_d: editedD,
+          correct_option: editedCorrect,
+        })
+        .eq("id", flag.question_id);
+
+      if (qError) throw qError;
+
+      // 2. Mark the flag as fixed
+      const { error: fError } = await supabase
+        .from("question_flags")
+        .update({
+          status: "fixed",
+          admin_note: adminNote ? `[Inline Edit] ${adminNote}` : "[Inline Edit] Question corrected by admin."
+        })
+        .eq("id", flag.id);
+
+      if (fError) throw fError;
+
+      toast.success("Question successfully corrected and flag marked as fixed!");
+      setExpanded(null);
+      setIsEditing(false);
+      setAdminNote("");
+      qc.invalidateQueries({ queryKey: ["questionFlags"] });
+    } catch (e: any) {
+      toast.error(`Correction failed: ${e.message}`);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const updateFlag = async (id: string, status: string) => {
     setUpdating(true);
     const { error } = await supabase
@@ -87,7 +152,15 @@ export function FlaggedQuestionsView() {
                 </div>
                 {flag.status === "pending" && (
                   <button
-                    onClick={() => setExpanded(expanded === flag.id ? null : flag.id)}
+                    onClick={() => {
+                      if (expanded === flag.id) {
+                        setExpanded(null);
+                        setIsEditing(false);
+                      } else {
+                        setExpanded(flag.id);
+                        setIsEditing(false);
+                      }
+                    }}
                     className="shrink-0 p-2 rounded-lg bg-[#1E293B] text-[#475569] hover:text-white transition-all"
                     title="Review Flag"
                   >
@@ -97,40 +170,141 @@ export function FlaggedQuestionsView() {
               </div>
 
               {expanded === flag.id && (
-                <div className="border-t border-white/5 p-4 bg-[#0B1829] space-y-3">
-                  <p className="text-white text-sm font-medium">{flag.questions?.text}</p>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    {["A", "B", "C", "D"].map((l, i) => {
-                      const key = `option_${l.toLowerCase()}` as any;
-                      const opt = flag.questions?.[key];
-                      if (!opt) return null;
-                      const isCorrect = l === flag.questions?.correct_option;
-                      return (
-                        <div key={l} className={`p-2 rounded-lg border ${isCorrect ? "border-[#22C55E]/30 text-[#22C55E]" : "border-white/5 text-[#94A3B8]"}`}>
-                          <span className="font-bold mr-1">{l}.</span>{opt}
+                <div className="border-t border-white/5 p-4 bg-[#0B1829] space-y-4">
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[#64748B] text-[10px] font-bold uppercase block mb-1">Question Text</label>
+                        <textarea
+                          value={editedText}
+                          onChange={e => setEditedText(e.target.value)}
+                          className="w-full h-24 bg-[#1E293B] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[#64748B] text-[10px] font-bold uppercase block mb-1">Option A</label>
+                          <input
+                            type="text"
+                            value={editedA}
+                            onChange={e => setEditedA(e.target.value)}
+                            className="w-full bg-[#1E293B] border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none"
+                          />
                         </div>
-                      );
-                    })}
+                        <div>
+                          <label className="text-[#64748B] text-[10px] font-bold uppercase block mb-1">Option B</label>
+                          <input
+                            type="text"
+                            value={editedB}
+                            onChange={e => setEditedB(e.target.value)}
+                            className="w-full bg-[#1E293B] border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[#64748B] text-[10px] font-bold uppercase block mb-1">Option C</label>
+                          <input
+                            type="text"
+                            value={editedC}
+                            onChange={e => setEditedC(e.target.value)}
+                            className="w-full bg-[#1E293B] border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[#64748B] text-[10px] font-bold uppercase block mb-1">Option D</label>
+                          <input
+                            type="text"
+                            value={editedD}
+                            onChange={e => setEditedD(e.target.value)}
+                            className="w-full bg-[#1E293B] border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="w-1/3">
+                        <label className="text-[#64748B] text-[10px] font-bold uppercase block mb-1">Correct Answer</label>
+                        <select
+                          value={editedCorrect}
+                          onChange={e => setEditedCorrect(e.target.value)}
+                          className="w-full bg-[#1E293B] border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs focus:outline-none"
+                        >
+                          <option value="A">A</option>
+                          <option value="B">B</option>
+                          <option value="C">C</option>
+                          <option value="D">D</option>
+                        </select>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-white text-sm font-medium">{flag.questions?.text}</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {["A", "B", "C", "D"].map((l, i) => {
+                          const key = `option_${l.toLowerCase()}` as any;
+                          const opt = flag.questions?.[key];
+                          if (!opt) return null;
+                          const isCorrect = l === flag.questions?.correct_option;
+                          return (
+                            <div key={l} className={`p-2 rounded-lg border ${isCorrect ? "border-[#22C55E]/30 text-[#22C55E]" : "border-white/5 text-[#94A3B8]"}`}>
+                              <span className="font-bold mr-1">{l}.</span>{opt}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  <div className="space-y-1">
+                    <label className="text-[#64748B] text-[10px] font-bold uppercase block">Resolution Notes</label>
+                    <textarea
+                      placeholder="Describe what was fixed (or general review summary)..."
+                      value={adminNote}
+                      onChange={e => setAdminNote(e.target.value)}
+                      className="w-full h-16 bg-[#1E293B] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none resize-none"
+                    />
                   </div>
-                  <textarea
-                    placeholder="Admin note (optional)..."
-                    value={adminNote}
-                    onChange={e => setAdminNote(e.target.value)}
-                    className="w-full h-20 bg-[#1E293B] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none resize-none"
-                  />
-                  <div className="flex gap-2">
-                    <button onClick={() => updateFlag(flag.id, "fixed")} disabled={updating}
-                      className="flex-1 bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50">
-                      ✓ Mark Fixed
-                    </button>
-                    <button onClick={() => updateFlag(flag.id, "reviewed")} disabled={updating}
-                      className="flex-1 bg-[#2563EB]/20 text-[#60A5FA] font-bold py-2.5 rounded-xl text-sm border border-[#2563EB]/30 transition-all disabled:opacity-50">
-                      Reviewed
-                    </button>
-                    <button onClick={() => updateFlag(flag.id, "dismissed")} disabled={updating}
-                      className="flex-1 bg-[#1E293B] text-[#64748B] font-bold py-2.5 rounded-xl text-sm border border-white/5 transition-all disabled:opacity-50">
-                      <X size={14} className="inline mr-1" />Dismiss
-                    </button>
+
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={() => saveAndMarkFixed(flag)}
+                          disabled={updating}
+                          className="flex-1 bg-gradient-to-r from-[#22C55E] to-[#16A34A] hover:opacity-95 text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
+                        >
+                          Save Changes & Mark Fixed
+                        </button>
+                        <button
+                          onClick={() => setIsEditing(false)}
+                          disabled={updating}
+                          className="bg-[#1E293B] text-[#64748B] hover:text-white border border-white/5 font-bold px-4 py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => startEditing(flag)}
+                          disabled={updating}
+                          className="flex-1 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
+                        >
+                          ✏ Edit Question Inline
+                        </button>
+                        <button
+                          onClick={() => updateFlag(flag.id, "reviewed")}
+                          disabled={updating}
+                          className="bg-[#2563EB]/15 text-[#60A5FA] font-bold px-4 py-2.5 rounded-xl text-sm border border-[#2563EB]/30 transition-all disabled:opacity-50"
+                        >
+                          Mark Reviewed
+                        </button>
+                        <button
+                          onClick={() => updateFlag(flag.id, "dismissed")}
+                          disabled={updating}
+                          className="bg-[#1E293B] text-[#64748B] font-bold px-4 py-2.5 rounded-xl text-sm border border-white/5 transition-all disabled:opacity-50"
+                        >
+                          Dismiss
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

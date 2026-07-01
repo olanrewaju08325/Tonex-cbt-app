@@ -43,6 +43,42 @@ export function AppLayout() {
     };
   }, [user]);
 
+  // PWA App Installation Rewards and Launch Checks
+  useEffect(() => {
+    if (!user) return;
+
+    const handleAppInstalled = async () => {
+      try {
+        const { error } = await supabase.rpc("grant_pwa_badge");
+        if (!error) {
+          localStorage.setItem("tonex_pwa_badge_granted", "true");
+          toast.success("🎉 PWA Installed! You unlocked the 'Mobile Pioneer' badge! View it on your Profile.");
+        }
+      } catch (e) {
+        console.error("Failed to grant badge:", e);
+      }
+    };
+
+    // Check if launched in PWA standalone window
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone;
+    if (isStandalone) {
+      const badgeGranted = localStorage.getItem("tonex_pwa_badge_granted");
+      if (badgeGranted !== "true") {
+        supabase.rpc("grant_pwa_badge").then(({ error }) => {
+          if (!error) {
+            localStorage.setItem("tonex_pwa_badge_granted", "true");
+            toast.success("🎉 Welcome back to the mobile app! You unlocked the 'Mobile Pioneer' badge!");
+          }
+        });
+      }
+    }
+
+    window.addEventListener("appinstalled", handleAppInstalled);
+    return () => {
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, [user]);
+
   // Subscription expiry local notifications check
   useEffect(() => {
     if (!subscription || subscription.status !== 'active' || !subscription.expires_at) return;

@@ -4,9 +4,10 @@ import { supabase } from "../../lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Award, Building2, Search, Filter, HelpCircle, 
-  TrendingUp, CheckCircle, XCircle, ArrowUpRight
+  TrendingUp, CheckCircle, XCircle, ArrowUpRight, ChevronRight
 } from "lucide-react";
 import { useNavigate } from "react-router";
+import { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "../components/ui/drawer";
 
 interface CutOffMark {
   id: string;
@@ -144,8 +145,65 @@ export function CutOffMarksPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Filters Panel */}
-        <div className="lg:col-span-4 space-y-4">
+        {/* Mobile Filter Button */}
+        <div className="block lg:hidden w-full mb-2">
+          <Drawer>
+            <DrawerTrigger asChild>
+              <button className="w-full flex items-center justify-between p-3.5 bg-[#0F172A] hover:bg-[#0F172A]/85 text-white rounded-2xl border border-white/6 text-sm font-semibold">
+                <span className="flex items-center gap-2">
+                  <Filter size={16} className="text-[#60A5FA]" />
+                  Filter Registry {(searchQuery || selectedUniId) ? "• Active" : ""}
+                </span>
+                <ChevronRight size={16} className="text-[#64748B]" />
+              </button>
+            </DrawerTrigger>
+            <DrawerContent className="bg-[#0F172A] border-white/10 p-5 pb-8">
+              <DrawerHeader className="px-0">
+                <DrawerTitle className="text-white text-base flex items-center gap-2">
+                  <Filter size={16} className="text-[#60A5FA]" /> Filter Registry
+                </DrawerTitle>
+              </DrawerHeader>
+              <div className="space-y-4 mt-2">
+                <div className="space-y-1">
+                  <label className="text-[#64748B] text-[10px] uppercase font-bold">Search Department</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="e.g. Medicine, Law..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-[#1E293B] border border-white/5 focus:border-[#2563EB] rounded-xl pl-9 pr-4 py-3.5 text-white text-xs focus:outline-none transition-all placeholder-[#475569]"
+                    />
+                    <Search size={13} className="absolute left-3.5 top-4 text-[#475569]" />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[#64748B] text-[10px] uppercase font-bold">University</label>
+                  <select
+                    value={selectedUniId}
+                    onChange={(e) => setSelectedUniId(e.target.value)}
+                    className="w-full bg-[#1E293B] border border-white/5 focus:border-[#2563EB] rounded-xl px-3 py-3.5 text-white text-xs focus:outline-none transition-all"
+                  >
+                    <option value="">All Universities</option>
+                    {universities.map(u => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <DrawerClose asChild>
+                  <button className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold py-3 rounded-xl text-xs transition-all mt-4">
+                    Apply Filters
+                  </button>
+                </DrawerClose>
+              </div>
+            </DrawerContent>
+          </Drawer>
+        </div>
+
+        {/* Filters Panel (Desktop Only) */}
+        <div className="hidden lg:block lg:col-span-4 space-y-4">
           <div className="bg-[#0F172A] border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
             <h3 className="text-white font-bold text-sm flex items-center gap-2">
               <Filter size={15} className="text-[#60A5FA]" />

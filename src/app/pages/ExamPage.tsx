@@ -185,6 +185,9 @@ export function ExamPage() {
 
   // ─── Submit handler ──────────────────────────────────────────────────────────
   const handleFinalSubmit = useCallback(async () => {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate([100, 50, 100]);
+    }
     if (!questions || sessionSaved) return;
     setSessionSaved(true);
     setSubmitModal(false);
@@ -332,6 +335,9 @@ export function ExamPage() {
   }
 
   const selectAnswer = (letter: string) => {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(40);
+    }
     const newAnswers = [...answers];
     newAnswers[current] = letter;
     setAnswers(newAnswers);

@@ -8,6 +8,7 @@ export interface LeaderboardEntry {
   avg_score: number;
   total_exams: number;
   university_short_name: string;
+  target_department?: string;
 }
 
 export function useLeaderboard(universityId?: string | null, weekly?: boolean) {

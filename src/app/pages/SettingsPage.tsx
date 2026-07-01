@@ -13,6 +13,7 @@ export function SettingsPage() {
     full_name: profile?.full_name || "",
     phone: profile?.phone || "",
     state: profile?.state || "",
+    target_department: profile?.target_department || "",
   });
   const [preferences, setPreferences] = useState({
     theme: "dark", // currently only dark is supported
@@ -119,6 +120,17 @@ export function SettingsPage() {
                   className="w-full bg-[#1E293B] border border-white/6 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#2563EB]/40"
                 />
               </div>
+            </div>
+            <div>
+              <label className="block text-[#94A3B8] text-xs font-semibold mb-2 uppercase tracking-wide">Target Department / Course</label>
+              <input
+                type="text"
+                title="Target Department / Course"
+                placeholder="e.g. Medicine & Surgery, Law, Computer Science"
+                value={formData.target_department}
+                onChange={(e) => setFormData(f => ({ ...f, target_department: e.target.value }))}
+                className="w-full bg-[#1E293B] border border-white/6 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#2563EB]/40"
+              />
             </div>
             <div className="pt-2">
               <button

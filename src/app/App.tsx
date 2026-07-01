@@ -6,13 +6,16 @@ import { AuthProvider } from "../contexts/AuthContext";
 import { queryClient } from "../lib/queryClient";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { OfflineBanner } from "./components/OfflineBanner";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <OfflineBanner />
-        <RouterProvider router={router} />
+        <ErrorBoundary>
+          <RouterProvider router={router} />
+        </ErrorBoundary>
         <InstallPrompt />
         <Toaster
           theme="dark"

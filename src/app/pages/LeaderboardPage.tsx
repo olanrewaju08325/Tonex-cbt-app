@@ -12,15 +12,26 @@ const TABS = ["Global", "University"];
 export function LeaderboardPage() {
   const [tab, setTab] = useState(0);
   const [timeframe, setTimeframe] = useState<"all" | "weekly">("all");
+  const [selectedDept, setSelectedDept] = useState("");
   const navigate = useNavigate();
   const { profile } = useAuth();
   
   const universityId = tab === 1 ? profile?.target_university_id : null;
   const { data: leaderboard, isLoading } = useLeaderboard(universityId, timeframe === "weekly");
 
-  const data = leaderboard || [];
+  const rawData = leaderboard || [];
+
+  // Extract unique departments dynamically from participants list
+  const departments = Array.from(
+    new Set(rawData.map(d => d.target_department).filter(Boolean))
+  ) as string[];
+
+  // Filter rankings by chosen department
+  const data = selectedDept
+    ? rawData.filter(d => d.target_department === selectedDept)
+    : rawData;
   
-  // Find my rank
+  // Find my rank in the filtered list
   const myIndex = data.findIndex(d => d.user_id === profile?.id);
   const myData = myIndex >= 0 ? data[myIndex] : null;
   const myRank = myIndex >= 0 ? myIndex + 1 : "-";
@@ -158,6 +169,23 @@ export function LeaderboardPage() {
           </div>
         </div>
 
+        {/* Department Filter Selector */}
+        {departments.length > 0 && (
+          <div className="mb-6 flex items-center justify-between gap-3 bg-[#0F172A] border border-white/6 rounded-2xl p-4">
+            <span className="text-white text-xs font-semibold">Filter by Target Department:</span>
+            <select
+              value={selectedDept}
+              onChange={e => setSelectedDept(e.target.value)}
+              className="bg-[#1E293B] border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none"
+            >
+              <option value="">All Departments</option>
+              {departments.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="space-y-2 relative">
           {isLoading ? (
             Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-2xl bg-[#0F172A]" />)
@@ -194,7 +222,9 @@ export function LeaderboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-white font-semibold text-sm truncate">{user.full_name}</div>
-                    <div className="text-[#475569] text-xs">{user.university_short_name || "Any"}</div>
+                    <div className="text-[#475569] text-xs">
+                      {user.university_short_name || "Any"} {user.target_department ? `· ${user.target_department}` : ""}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-right">

@@ -72,7 +72,7 @@ export function AnalyticsPage() {
     subject: s.subjects?.name || "Mixed",
   }));
 
-  // Group by subject
+  // Group by subject for scores
   const subjectMap: Record<string, { total: number; count: number }> = {};
   (sessions || []).forEach((s: any) => {
     const name = s.subjects?.name || "Mixed";
@@ -86,6 +86,22 @@ export function AnalyticsPage() {
     fill: SUBJECT_COLORS[subject] || "#60A5FA",
   }));
 
+  // Group by subject for time management
+  const subjectTimeMap: Record<string, { totalTime: number; totalQuestions: number }> = {};
+  (sessions || []).forEach((s: any) => {
+    const name = s.subjects?.name || "Mixed";
+    if (!subjectTimeMap[name]) subjectTimeMap[name] = { totalTime: 0, totalQuestions: 0 };
+    subjectTimeMap[name].totalTime += s.time_taken_seconds || 0;
+    subjectTimeMap[name].totalQuestions += s.total_questions || 1;
+  });
+  const subjectTimeData = Object.entries(subjectTimeMap)
+    .filter(([_, data]) => data.totalQuestions > 0)
+    .map(([subject, data]) => ({
+      subject: subject.length > 7 ? subject.slice(0, 7) : subject,
+      secondsPerQuestion: Math.round(data.totalTime / data.totalQuestions),
+      fill: SUBJECT_COLORS[subject] || "#60A5FA",
+    }));
+
   const avgScore = stats?.avg_score ? Math.round(Number(stats.avg_score)) : 0;
   const gradeColor = avgScore >= 80 ? "#22C55E" : avgScore >= 60 ? "#60A5FA" : avgScore >= 50 ? "#F59E0B" : "#EF4444";
 
@@ -94,6 +110,22 @@ export function AnalyticsPage() {
   // Classify weak topics
   const criticalTopics = (topicWeakness || []).filter(t => t.accuracy < 50);
   const improvingTopics = (topicWeakness || []).filter(t => t.accuracy >= 50 && t.accuracy < 70);
+
+  const handleShareWithCoach = () => {
+    if (!stats) return;
+    const dateStr = new Date().toLocaleDateString();
+    const message = `*My Tonex CBT Weekly Study Report (${dateStr})* 📈\n\n` +
+      `• *Exams Taken:* ${stats.tests_taken}\n` +
+      `• *Average Score:* ${avgScore}%\n` +
+      `• *Streak:* ${stats.streak_count} days\n\n` +
+      (criticalTopics.length > 0 
+        ? `*Focus Areas needed:* ${criticalTopics.map(t => t.topic).slice(0, 3).join(", ")}\n\n` 
+        : `*Status:* Performing well on all target topics! 🚀\n\n`) +
+      `Sent from Tonex CBT app. Help me monitor my Post-UTME preparation!`;
+      
+    const encoded = encodeURIComponent(message);
+    window.open(`https://api.whatsapp.com/send?text=${encoded}`, "_blank");
+  };
 
   return (
     <div className="min-h-screen bg-[#08142D] px-4 py-6 sm:px-6 md:px-8">
@@ -286,6 +318,26 @@ export function AnalyticsPage() {
           )}
         </motion.div>
 
+        {/* WhatsApp Coach Card */}
+        {stats && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.23 }}
+            className="bg-gradient-to-r from-[#22C55E]/15 to-[#15803D]/10 border border-[#22C55E]/20 rounded-2xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          >
+            <div className="space-y-1">
+              <h4 className="text-white font-bold text-sm">Share Report with Tutor or Parent</h4>
+              <p className="text-[#94A3B8] text-xs">Send a formatted WhatsApp progress report cards updates to parent or tutor.</p>
+            </div>
+            <button
+              onClick={handleShareWithCoach}
+              className="bg-[#22C55E] hover:bg-[#15803D] text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-green-500/10 shrink-0"
+            >
+              <Zap size={13} />
+              Send via WhatsApp
+            </button>
+          </motion.div>
+        )}
+
         {/* Subject breakdown */}
         {subjectBreakdown.length > 0 && (
           <motion.div
@@ -304,6 +356,32 @@ export function AnalyticsPage() {
                   />
                   <Bar dataKey="score" radius={[6, 6, 0, 0]}>
                     {subjectBreakdown.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Subject Time-Management Analytics */}
+        {subjectTimeData.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+            className="bg-[#0F172A] border border-white/6 rounded-2xl p-6 mb-6"
+          >
+            <div className="text-white font-semibold text-sm mb-1">Subject Time-Management</div>
+            <div className="text-[#475569] text-xs mb-4">Average seconds spent answering a single question by subject</div>
+            <div className="h-44">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={subjectTimeData} layout="vertical" margin={{ left: 15, right: 15, top: 0, bottom: 0 }}>
+                  <XAxis type="number" stroke="#64748B" fontSize={10} axisLine={false} tickLine={false} />
+                  <YAxis dataKey="subject" type="category" stroke="#64748B" fontSize={10} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: "#0F172A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: "#E2E8F0" }}
+                    formatter={(v: number) => [`${v}s`, "Avg time per question"]}
+                  />
+                  <Bar dataKey="secondsPerQuestion" radius={[0, 4, 4, 0]}>
+                    {subjectTimeData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

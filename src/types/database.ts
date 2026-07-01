@@ -17,6 +17,7 @@ export interface Profile {
   avatar_url: string | null;
   streak_count: number;
   last_active_date: string | null;
+  target_department: string | null;
   created_at: string;
 }
 

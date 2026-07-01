@@ -44,16 +44,46 @@ export function BulkUploadView() {
             
             // Validate each row
             if (errors.length === 0) {
+              const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+              const hasBalancedBrackets = (str: string) => {
+                const stack = [];
+                const open = ["(", "[", "{"];
+                const close = [")", "]", "}"];
+                for (let i = 0; i < str.length; i++) {
+                  const char = str[i];
+                  const openIdx = open.indexOf(char);
+                  if (openIdx !== -1) {
+                    stack.push(char);
+                  } else {
+                    const closeIdx = close.indexOf(char);
+                    if (closeIdx !== -1) {
+                      if (stack.length === 0) return false;
+                      const lastOpen = stack.pop();
+                      if (open.indexOf(lastOpen!) !== closeIdx) return false;
+                    }
+                  }
+                }
+                return stack.length === 0;
+              };
+
               rows.forEach((row, index) => {
                 const rowNum = index + 2; // +1 for 0-index, +1 for header row
                 
                 const qText = row.text || row.question;
                 if (!qText || !String(qText).trim()) {
                   errors.push(`Row ${rowNum}: Question text is empty.`);
+                } else if (!hasBalancedBrackets(String(qText))) {
+                  errors.push(`Row ${rowNum}: Mismatched parentheses or brackets in question text.`);
                 }
                 
                 if (!row.subject_id || !String(row.subject_id).trim()) {
                   errors.push(`Row ${rowNum}: subject_id is empty.`);
+                } else if (!uuidRegex.test(row.subject_id.trim())) {
+                  errors.push(`Row ${rowNum}: subject_id is not a valid UUID format.`);
+                }
+
+                if (row.university_id && String(row.university_id).trim() && !uuidRegex.test(row.university_id.trim())) {
+                  errors.push(`Row ${rowNum}: university_id is not a valid UUID format.`);
                 }
                 
                 const correct = (row.correct_answer || row.correct_option || "").trim().toUpperCase();
@@ -99,54 +129,68 @@ export function BulkUploadView() {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           
-          const questionsToInsert = rows.map(row => {
-            // Support both "question" and "text" headers
+          const rawQuestions = rows.map(row => {
             const qText = row.text || row.question;
             if (!qText) throw new Error("Missing question text. CSV must have a 'text' or 'question' column.");
             if (!row.subject_id) throw new Error("Missing subject_id.");
 
             return {
-              subject_id: row.subject_id,
-              university_id: row.university_id || null,
-              text: qText,
-              option_a: row.option_a,
-              option_b: row.option_b,
-              option_c: row.option_c,
-              option_d: row.option_d,
-              correct_answer: (row.correct_answer || row.correct_option)?.toUpperCase(),
-              explanation: row.explanation || null,
-              year: row.year ? parseInt(row.year) : null,
-              created_by: user?.id,
-              is_published: true
+              subject_id: String(row.subject_id).trim(),
+              university_id: row.university_id ? String(row.university_id).trim() : null,
+              text: String(qText).trim(),
+              option_a: String(row.option_a ?? "").trim(),
+              option_b: String(row.option_b ?? "").trim(),
+              option_c: String(row.option_c ?? "").trim(),
+              option_d: String(row.option_d ?? "").trim(),
+              correct_answer: String(row.correct_answer || row.correct_option || "").trim().toUpperCase(),
+              explanation: row.explanation ? String(row.explanation).trim() : null,
+              year: row.year ? parseInt(row.year) : null
             };
           });
 
-          const { error } = await adminSupabase
-            .from('questions')
-            .upsert(questionsToInsert, {
-              onConflict: 'subject_id,text',
-              ignoreDuplicates: true
-            });
-          
-          if (error) {
-            console.error("Batch insert error:", error);
-            throw error;
+          // 1. Deduplicate within the CSV batch itself
+          const uniqueCSVMap = new Map();
+          rawQuestions.forEach(q => {
+            const key = `${q.subject_id.toLowerCase()}:::${q.text.toLowerCase()}`;
+            if (!uniqueCSVMap.has(key)) {
+              uniqueCSVMap.set(key, q);
+            }
+          });
+          const deduplicatedList = Array.from(uniqueCSVMap.values());
+
+          // 2. Call the database function to securely batch insert and ignore duplicates
+          const { data: rpcData, error: rpcError } = await supabase.rpc('bulk_insert_questions', {
+            p_questions: deduplicatedList
+          });
+
+          if (rpcError) {
+            console.error("RPC insert error:", rpcError);
+            throw rpcError;
           }
-          
+
+          const inserted = rpcData?.inserted || 0;
+          const skipped = rpcData?.skipped || 0;
+
           // Log bulk upload action
-          if (user?.id) {
+          if (user?.id && inserted > 0) {
             await supabase.from("admin_logs").insert({
               admin_id: user.id,
               action: "BULK_UPLOAD_QUESTIONS",
               target_type: "questions",
               details: {
                 filename: file.name,
-                count: questionsToInsert.length
+                count: inserted,
+                skipped_duplicates: skipped
               }
             });
           }
 
-          toast.success(`Successfully uploaded ${questionsToInsert.length} questions!`);
+          if (inserted > 0) {
+            toast.success(`Successfully uploaded ${inserted} new questions! (Skipped ${skipped} duplicates)`);
+          } else {
+            toast.success(`All ${skipped} questions from the CSV already exist in the database. (Skipped all)`);
+          }
+
           setFile(null);
           setPreview([]);
         } catch (error: any) {

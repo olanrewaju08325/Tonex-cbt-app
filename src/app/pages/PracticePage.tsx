@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
 import { cacheQuestions, cacheSubjects, cacheUniversities } from "../../lib/offlineCache";
+import { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "../components/ui/drawer";
 
 const QUESTION_COUNTS = [10, 20, 40, 60, 100];
 const TIMER_OPTIONS = [
@@ -278,31 +279,83 @@ export function PracticePage() {
               </div>
             </div>
             {unisLoading ? <Skeleton className="h-20 bg-[#1E293B] rounded-xl" /> : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <button
-                  onClick={() => setConfig(c => ({ ...c, university: "" }))}
-                  className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
-                    config.university === ""
-                      ? "bg-[#2563EB]/20 border-[#2563EB]/40 text-[#60A5FA]"
-                      : "border-white/6 text-[#64748B] hover:border-white/12 hover:text-white"
-                  }`}
-                >
-                  All Universities
-                </button>
-                {universities?.map(uni => (
+              <>
+                {/* Mobile Button: Trigger bottom drawer */}
+                <div className="block sm:hidden">
+                  <Drawer>
+                    <DrawerTrigger asChild>
+                      <button className="w-full flex items-center justify-between p-3.5 bg-[#1E293B]/40 hover:bg-[#1E293B]/60 text-white rounded-xl border border-white/6 text-sm font-semibold">
+                        <span>
+                          {config.university === ""
+                            ? "All Universities"
+                            : universities?.find(u => u.id === config.university)?.short_name || "Select Target"}
+                        </span>
+                        <span className="text-[#64748B] text-xs">Tap to change</span>
+                      </button>
+                    </DrawerTrigger>
+                    <DrawerContent className="bg-[#0F172A] border-white/10 p-5 pb-8 max-h-[85vh]">
+                      <DrawerHeader className="px-0">
+                        <DrawerTitle className="text-white text-base">Select Target University</DrawerTitle>
+                      </DrawerHeader>
+                      <div className="grid grid-cols-2 gap-2 overflow-y-auto mt-2">
+                        <DrawerClose asChild>
+                          <button
+                            onClick={() => setConfig(c => ({ ...c, university: "" }))}
+                            className={`py-3 px-3 rounded-xl text-xs font-semibold border transition-all text-center ${
+                              config.university === ""
+                                ? "bg-[#2563EB]/20 border-[#2563EB]/40 text-[#60A5FA]"
+                                : "border-white/6 text-[#64748B]"
+                            }`}
+                          >
+                            All Universities
+                          </button>
+                        </DrawerClose>
+                        {universities?.map(uni => (
+                          <DrawerClose asChild key={uni.id}>
+                            <button
+                              onClick={() => setConfig(c => ({ ...c, university: uni.id }))}
+                              className={`py-3 px-3 rounded-xl text-xs font-semibold border transition-all text-left truncate ${
+                                config.university === uni.id
+                                  ? "bg-[#2563EB]/20 border-[#2563EB]/40 text-[#60A5FA]"
+                                  : "border-white/6 text-[#64748B]"
+                              }`}
+                            >
+                              {uni.short_name}
+                            </button>
+                          </DrawerClose>
+                        ))}
+                      </div>
+                    </DrawerContent>
+                  </Drawer>
+                </div>
+
+                {/* Desktop Grid Layout */}
+                <div className="hidden sm:grid grid-cols-3 gap-2">
                   <button
-                    key={uni.id}
-                    onClick={() => setConfig(c => ({ ...c, university: uni.id }))}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-left truncate ${
-                      config.university === uni.id
+                    onClick={() => setConfig(c => ({ ...c, university: "" }))}
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                      config.university === ""
                         ? "bg-[#2563EB]/20 border-[#2563EB]/40 text-[#60A5FA]"
                         : "border-white/6 text-[#64748B] hover:border-white/12 hover:text-white"
                     }`}
                   >
-                    {uni.short_name}
+                    All Universities
                   </button>
-                ))}
-              </div>
+                  {universities?.map(uni => (
+                    <button
+                      key={uni.id}
+                      onClick={() => setConfig(c => ({ ...c, university: uni.id }))}
+                      className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-left truncate ${
+                        config.university === uni.id
+                          ? "bg-[#2563EB]/20 border-[#2563EB]/40 text-[#60A5FA]"
+                          : "border-white/6 text-[#64748B] hover:border-white/12 hover:text-white"
+                      }`}
+                    >
+                      {uni.short_name}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </motion.div>
 
@@ -320,40 +373,104 @@ export function PracticePage() {
               </div>
             </div>
             {subsLoading ? <Skeleton className="h-20 bg-[#1E293B] rounded-xl" /> : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {subjects?.map(sub => {
-                  const isPracticed = activeSubjectIds.includes(sub.id);
-                  const isLockedSubject = !profile?.is_premium && activeSubjectIds.length >= 4 && !isPracticed;
-                  
-                  return (
-                    <button
-                      key={sub.id}
-                      onClick={() => {
-                        if (isLockedSubject) {
-                          toast.error("Subject locked. Free plan users are limited to 4 subjects. Upgrade to unlock all subjects!");
-                          navigate("/premium");
-                          return;
-                        }
-                        setConfig(c => ({ ...c, subject: sub.id }));
-                      }}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 truncate ${
-                        isLockedSubject
-                          ? "border-white/5 bg-[#1E293B]/20 text-[#475569] cursor-not-allowed opacity-50"
-                          : config.subject === sub.id
-                          ? "bg-[#7C3AED]/20 border-[#7C3AED]/40 text-[#A78BFA]"
-                          : "border-white/6 text-[#64748B] hover:border-white/12 hover:text-white"
-                      }`}
-                    >
-                      {isLockedSubject ? (
-                        <Lock size={12} className="text-[#475569] shrink-0" />
-                      ) : (
-                        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: config.subject === sub.id ? "#A78BFA" : "#334155" }} />
-                      )}
-                      {sub.name}
-                    </button>
-                  );
-                })}
-              </div>
+              <>
+                {/* Mobile Button: Trigger bottom drawer */}
+                <div className="block sm:hidden">
+                  <Drawer>
+                    <DrawerTrigger asChild>
+                      <button className="w-full flex items-center justify-between p-3.5 bg-[#1E293B]/40 hover:bg-[#1E293B]/60 text-white rounded-xl border border-white/6 text-sm font-semibold">
+                        <span className="flex items-center gap-2">
+                          {config.subject ? (
+                            <>
+                              <div className="w-2 h-2 rounded-full bg-[#A78BFA]" />
+                              {subjects?.find(s => s.id === config.subject)?.name}
+                            </>
+                          ) : (
+                            "Choose a Subject..."
+                          )}
+                        </span>
+                        <span className="text-[#64748B] text-xs">Tap to change</span>
+                      </button>
+                    </DrawerTrigger>
+                    <DrawerContent className="bg-[#0F172A] border-white/10 p-5 pb-8 max-h-[85vh]">
+                      <DrawerHeader className="px-0">
+                        <DrawerTitle className="text-white text-base">Select Subject</DrawerTitle>
+                      </DrawerHeader>
+                      <div className="grid grid-cols-2 gap-2 overflow-y-auto mt-2">
+                        {subjects?.map(sub => {
+                          const isPracticed = activeSubjectIds.includes(sub.id);
+                          const isLockedSubject = !profile?.is_premium && activeSubjectIds.length >= 4 && !isPracticed;
+
+                          return (
+                            <DrawerClose asChild key={sub.id}>
+                              <button
+                                onClick={() => {
+                                  if (isLockedSubject) {
+                                    toast.error("Subject locked. Free plan users are limited to 4 subjects. Upgrade to unlock all subjects!");
+                                    navigate("/premium");
+                                    return;
+                                  }
+                                  setConfig(c => ({ ...c, subject: sub.id }));
+                                }}
+                                className={`py-3 px-3 rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 truncate ${
+                                  isLockedSubject
+                                    ? "border-white/5 bg-[#1E293B]/20 text-[#475569] cursor-not-allowed opacity-50"
+                                    : config.subject === sub.id
+                                    ? "bg-[#7C3AED]/20 border-[#7C3AED]/40 text-[#A78BFA]"
+                                    : "border-white/6 text-[#64748B]"
+                                }`}
+                              >
+                                {isLockedSubject ? (
+                                  <Lock size={12} className="text-[#475569] shrink-0" />
+                                ) : (
+                                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: config.subject === sub.id ? "#A78BFA" : "#334155" }} />
+                                )}
+                                {sub.name}
+                              </button>
+                            </DrawerClose>
+                          );
+                        })}
+                      </div>
+                    </DrawerContent>
+                  </Drawer>
+                </div>
+
+                {/* Desktop Grid Layout */}
+                <div className="hidden sm:grid grid-cols-3 gap-2">
+                  {subjects?.map(sub => {
+                    const isPracticed = activeSubjectIds.includes(sub.id);
+                    const isLockedSubject = !profile?.is_premium && activeSubjectIds.length >= 4 && !isPracticed;
+
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => {
+                          if (isLockedSubject) {
+                            toast.error("Subject locked. Free plan users are limited to 4 subjects. Upgrade to unlock all subjects!");
+                            navigate("/premium");
+                            return;
+                          }
+                          setConfig(c => ({ ...c, subject: sub.id }));
+                        }}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 truncate ${
+                          isLockedSubject
+                            ? "border-white/5 bg-[#1E293B]/20 text-[#475569] cursor-not-allowed opacity-50"
+                            : config.subject === sub.id
+                            ? "bg-[#7C3AED]/20 border-[#7C3AED]/40 text-[#A78BFA]"
+                            : "border-white/6 text-[#64748B] hover:border-white/12 hover:text-white"
+                        }`}
+                      >
+                        {isLockedSubject ? (
+                          <Lock size={12} className="text-[#475569] shrink-0" />
+                        ) : (
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: config.subject === sub.id ? "#A78BFA" : "#334155" }} />
+                        )}
+                        {sub.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
             )}
 
             {config.subject && !limitLoading && dailyLimit && !dailyLimit.is_premium && (

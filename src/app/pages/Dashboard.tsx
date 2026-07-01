@@ -36,6 +36,7 @@ import { AggregateCalculatorPage } from "./AggregateCalculatorPage";
 import { CutOffMarksPage } from "./CutOffMarksPage";
 import { AnalyticsPage } from "./AnalyticsPage";
 import { BookmarksPage } from "./BookmarksPage";
+import { PredictorSection } from "../components/PredictorSection";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -825,43 +826,7 @@ export function Dashboard() {
         {activeTab === "cutoffs" && <CutOffMarksPage />}
         {activeTab === "analytics" && <AnalyticsPage />}
         {activeTab === "bookmarks" && <BookmarksPage />}
-        {activeTab === "predictor" && (
-          <div className="bg-[#0F172A] border border-white/6 rounded-3xl p-8 text-center max-w-lg mx-auto shadow-2xl relative overflow-hidden mt-4 md:mt-0">
-            {/* Background Glow */}
-            <div className="absolute -top-12 -left-12 w-36 h-36 bg-[#EC4899]/15 rounded-full blur-3xl pointer-events-none" />
-            
-            <div className="w-16 h-16 rounded-2xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <Brain className="text-[#F43F5E]" size={32} />
-            </div>
-            
-            <h2 className="text-white font-extrabold text-xl mb-2 font-['Manrope']">AI Admission Predictor</h2>
-            <span className="bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/20 text-[10px] px-3 py-1 rounded-full font-bold uppercase inline-block mb-5">
-              Coming Soon · Premium Feature
-            </span>
-            
-            <p className="text-[#94A3B8] text-sm leading-relaxed mb-6">
-              Our upcoming AI model will analyze your complete CBT practice history, O'Level grade points, and target university configs against historical cut-off marks to predict your real-time probability of admission.
-            </p>
-            
-            <div className="bg-[#1E293B]/60 border border-white/5 rounded-2xl p-4 text-left text-xs text-[#64748B] mb-6 space-y-2">
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#EF4444] mt-1.5 shrink-0" />
-                <span>🔒 This feature requires the <strong>Quarterly (₦6,500)</strong> plan or above.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#64748B] mt-1.5 shrink-0" />
-                <span>Will go live automatically as soon as the API keys are configured.</span>
-              </div>
-            </div>
-            
-            <button
-              onClick={() => navigate("/premium")}
-              className="w-full sm:w-auto bg-gradient-to-r from-[#2563EB] to-[#0B3D91] hover:from-[#1D4ED8] text-white font-bold px-8 py-3.5 rounded-xl hover:-translate-y-0.5 transition-all shadow-md shadow-blue-500/20 text-xs"
-            >
-              Upgrade Plan to Access
-            </button>
-          </div>
-        )}
+        {activeTab === "predictor" && <PredictorSection />}
       </div>
     </div>
   );
