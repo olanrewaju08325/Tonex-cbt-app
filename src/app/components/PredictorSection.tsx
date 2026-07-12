@@ -82,6 +82,43 @@ export function PredictorSection() {
     }
   }
 
+  if (!profile?.is_premium) {
+    return (
+      <div className="bg-[#0F172A] border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#8B5CF6] flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(37,99,235,0.4)]">
+            <Zap className="text-white" size={32} />
+          </div>
+          <h3 className="text-white font-black text-xl mb-2">AI Predictor Locked</h3>
+          <p className="text-[#94A3B8] text-sm max-w-sm mb-6">
+            Upgrade to Premium to unlock our AI-powered Admission Predictor and see exactly what you need to score to get into your dream course.
+          </p>
+          <a href="/settings" className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold py-3 px-8 rounded-full transition-colors shadow-lg">
+            Upgrade to Premium
+          </a>
+        </div>
+        
+        {/* Blurred background content */}
+        <div className="opacity-30 pointer-events-none blur-md">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-[#2563EB]/15 flex items-center justify-center border border-[#2563EB]/25">
+              <Calculator className="text-[#60A5FA]" size={20} />
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-base">AI Admission Predictor</h3>
+              <p className="text-[#64748B] text-xs">Analyze aggregate calculations...</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="h-10 bg-[#1E293B] rounded-xl"></div>
+            <div className="h-10 bg-[#1E293B] rounded-xl"></div>
+            <div className="h-10 bg-[#1E293B] rounded-xl col-span-2"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#0F172A] border border-white/5 rounded-2xl p-6 shadow-xl space-y-6">
       <div className="flex items-center gap-3">

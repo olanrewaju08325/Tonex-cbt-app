@@ -257,8 +257,29 @@ export function Dashboard() {
     if (subscription) {
       localStorage.setItem("tonex_cache_subscription", JSON.stringify(subscription));
       setCachedSubscription(subscription);
+
+      // Trigger push notification if expiring in <= 3 days
+      if (subscription.current_period_end) {
+        const expiryDate = new Date(subscription.current_period_end);
+        const now = new Date();
+        const diffDays = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
+        
+        if (diffDays <= 3 && diffDays > 0) {
+          const notified = localStorage.getItem(`tonex_expiry_notified_${subscription.id}`);
+          if (!notified) {
+            toast.warning(`Your Premium subscription expires in ${diffDays} days! Click here to renew.`, {
+              duration: 10000,
+              action: {
+                label: 'Renew Now',
+                onClick: () => navigate("/premium")
+              }
+            });
+            localStorage.setItem(`tonex_expiry_notified_${subscription.id}`, "true");
+          }
+        }
+      }
     }
-  }, [subscription]);
+  }, [subscription, navigate]);
 
   if (authLoading || !profile) {
     return <div className="min-h-screen bg-[#08142D] px-4 py-6 flex justify-center items-center"><div className="w-8 h-8 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin"></div></div>;

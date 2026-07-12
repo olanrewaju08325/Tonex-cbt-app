@@ -285,7 +285,27 @@ export function ReviewPage() {
                     </button>
                   </div>
                 </div>
-                <div className="text-[#94A3B8] text-sm leading-relaxed"><Latex>{item.q.explanation || "No explanation provided for this question."}</Latex></div>
+                {profile?.is_premium ? (
+                  <div className="text-[#94A3B8] text-sm leading-relaxed">
+                    <Latex>{item.q.explanation || "No explanation provided for this question."}</Latex>
+                  </div>
+                ) : (
+                  <div className="bg-[#0F172A] border border-white/5 rounded-xl p-6 text-center relative overflow-hidden mt-2">
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-50" />
+                    <div className="relative z-10 flex flex-col items-center">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#8B5CF6] flex items-center justify-center mb-3">
+                        <BookOpen className="text-white" size={24} />
+                      </div>
+                      <h4 className="text-white font-bold mb-1 text-base">Detailed Explanations Locked</h4>
+                      <p className="text-[#94A3B8] text-xs max-w-xs mx-auto mb-4">
+                        Upgrade to Premium to unlock step-by-step solutions and understand exactly why you missed this question.
+                      </p>
+                      <button onClick={() => navigate("/premium")} className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-5 py-2 rounded-full text-xs font-bold transition-all shadow-lg">
+                        Unlock Explanations
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>
