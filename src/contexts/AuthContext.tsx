@@ -219,8 +219,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Trigger Day 1 welcome email in the background
+    try {
+      fetch('/api/email/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'welcome',
+          payload: { email, name: full_name.split(' ')[0] || 'Student', day: 1 }
+        })
+      }).catch(() => {});
+    } catch (_) { /* non-critical */ }
+
     return { error: null };
   };
+
 
   const signOut = async () => {
     await supabase.auth.signOut();

@@ -3,7 +3,18 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/daily-mailer",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-report",
+      "schedule": "0 0 * * 0"
+    }
   ],
   "headers": [
     {

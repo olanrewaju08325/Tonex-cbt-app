@@ -14,6 +14,7 @@ export function SettingsPage() {
     phone: profile?.phone || "",
     state: profile?.state || "",
     target_department: profile?.target_department || "",
+    parent_email: profile?.parent_email || "",
   });
   const [preferences, setPreferences] = useState({
     theme: "dark", // currently only dark is supported
@@ -120,6 +121,17 @@ export function SettingsPage() {
                   className="w-full bg-[#1E293B] border border-white/6 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#2563EB]/40"
                 />
               </div>
+            </div>
+            <div>
+              <label className="block text-[#94A3B8] text-xs font-semibold mb-2 uppercase tracking-wide">Parent / Sponsor Email (For Weekly Reports)</label>
+              <input
+                type="email"
+                title="Parent / Sponsor Email"
+                placeholder="Parent or Sponsor's Email Address"
+                value={formData.parent_email}
+                onChange={(e) => setFormData(f => ({ ...f, parent_email: e.target.value }))}
+                className="w-full bg-[#1E293B] border border-white/6 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#2563EB]/40"
+              />
             </div>
             <div>
               <label className="block text-[#94A3B8] text-xs font-semibold mb-2 uppercase tracking-wide">Target Department / Course</label>

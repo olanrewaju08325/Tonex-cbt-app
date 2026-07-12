@@ -113,6 +113,22 @@ export function ManualSubscriptionsView() {
       toast.error(`Failed to approve: ${error.message}`);
     } else {
       await logAction("APPROVE_SUBSCRIPTION", sub);
+      // Trigger payment receipt email
+      try {
+        await fetch('/api/email/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'manual_payment',
+            payload: {
+              email: sub.user_email,
+              name: sub.user_name || 'Student',
+              amount: sub.amount,
+              plan: sub.plan
+            }
+          })
+        });
+      } catch (_) { /* Don't fail if email fails */ }
       toast.success(`✅ Approved! ${sub.user_name || sub.user_email} now has ${sub.plan} access for ${months} month${months > 1 ? "s" : ""}.`);
       setExpandedId(null);
       setAdminNote("");
@@ -120,6 +136,7 @@ export function ManualSubscriptionsView() {
     }
     setProcessingId(null);
   };
+
 
   const handleDeny = async (sub: Subscription) => {
     setProcessingId(sub.id);

@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import {
   Mail, Phone, MapPin, Clock, BookOpen,
   ChevronRight, Crown, Settings, LogOut, Bell, Shield, Edit2, CheckCircle, Award, MessageCircle,
-  Printer, X
+  Printer, X, Send
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -139,6 +139,37 @@ export function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile?.full_name || "");
   const [saving, setSaving] = useState(false);
+
+  const [referralEmail, setReferralEmail] = useState("");
+  const [sendingInvite, setSendingInvite] = useState(false);
+
+  const handleSendInvite = async () => {
+    if (!referralEmail || !referralEmail.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    setSendingInvite(true);
+    try {
+      const res = await fetch('/api/email/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'referral',
+          payload: {
+            friendEmail: referralEmail,
+            inviterName: profile?.full_name || 'A friend'
+          }
+        })
+      });
+      if (!res.ok) throw new Error('Failed to send invite');
+      toast.success('Invitation sent successfully!');
+      setReferralEmail("");
+    } catch (err) {
+      toast.error('Could not send invite. Please try again.');
+    } finally {
+      setSendingInvite(false);
+    }
+  };
 
   let daysLeft = null;
   if (subscription?.expires_at) {
@@ -498,6 +529,40 @@ export function ProfilePage() {
               <ChevronRight size={14} className="text-[#475569]" />
             </button>
           ))}
+        </motion.div>
+
+        {/* Invite Friends Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="bg-[#0F172A] border border-white/6 rounded-2xl p-5 mb-5"
+        >
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-[#22C55E]/15 flex items-center justify-center shrink-0">
+              <Send size={18} className="text-[#22C55E]" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold">Invite Friends</h3>
+              <p className="text-[#64748B] text-xs mt-0.5">Invite your friends to Tonex CBT and help them ace their exams.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="email"
+              value={referralEmail}
+              onChange={(e) => setReferralEmail(e.target.value)}
+              placeholder="friend@example.com"
+              className="flex-1 bg-[#1E293B] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#2563EB]/50"
+            />
+            <button
+              onClick={handleSendInvite}
+              disabled={sendingInvite || !referralEmail}
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-blue-500/20 whitespace-nowrap"
+            >
+              {sendingInvite ? 'Sending...' : 'Send Invite'}
+            </button>
+          </div>
         </motion.div>
 
         {/* Logout */}

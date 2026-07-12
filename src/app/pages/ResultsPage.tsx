@@ -100,6 +100,20 @@ export function ResultsPage() {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
 
+  // Trigger low-score intervention email if score < 40%
+  useEffect(() => {
+    if (percentage < 40 && profile?.email) {
+      fetch('/api/email/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'low_score',
+          payload: { email: profile.email, name: profile.full_name?.split(' ')[0] || 'Student' }
+        })
+      }).catch(() => {});
+    }
+  }, [percentage, profile]);
+
   const generateSummary = async () => {
     if (!profile?.is_premium) return;
     setGeneratingSummary(true);
