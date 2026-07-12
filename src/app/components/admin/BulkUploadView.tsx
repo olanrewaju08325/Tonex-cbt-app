@@ -225,7 +225,7 @@ export function BulkUploadView() {
 
           const uniqueCSVMap = new Map();
           rawQuestions.forEach(q => {
-            const key = \`\${q.subject_id.toLowerCase()}:::\${q.text.toLowerCase()}\`;
+            const key = `${q.subject_id.toLowerCase()}:::${q.text.toLowerCase()}`;
             if (!uniqueCSVMap.has(key)) uniqueCSVMap.set(key, q);
           });
           const deduplicatedList = Array.from(uniqueCSVMap.values());
