@@ -41,6 +41,10 @@ export function ExamPage() {
   const limit = state?.count ?? 15;
   const timerMins = state?.timer ?? 30;
   const isProctored = state?.proctored === true;
+  const isPomodoro = state?.pomodoro === true;
+
+  const POMODORO_FOCUS_SECS = 25 * 60;
+  const POMODORO_BREAK_SECS = 5 * 60;
 
   const { data: questions, isLoading } = useQuestions({
     subjectId: state?.mode === "full_exam" ? undefined : state?.subject,
@@ -54,7 +58,8 @@ export function ExamPage() {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<(string | null)[]>([]);
   const [statuses, setStatuses] = useState<QStatus[]>([]);
-  const [timeLeft, setTimeLeft] = useState(timerMins * 60);
+  const [timeLeft, setTimeLeft] = useState(isPomodoro ? POMODORO_FOCUS_SECS : timerMins * 60);
+  const [pomodoroMode, setPomodoroMode] = useState<"focus" | "break">("focus");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [submitModal, setSubmitModal] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
@@ -169,19 +174,31 @@ export function ExamPage() {
 
   // ─── Timer ───────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (timerMins === 0 || isLoading || sessionSaved) return;
+    if ((timerMins === 0 && !isPomodoro) || isLoading || sessionSaved) return;
     const interval = setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) {
-          clearInterval(interval);
-          handleFinalSubmit();
-          return 0;
+          if (isPomodoro) {
+            if (pomodoroMode === "focus") {
+              setPomodoroMode("break");
+              if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate([200, 100, 200]);
+              return POMODORO_BREAK_SECS;
+            } else {
+              setPomodoroMode("focus");
+              if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate([200, 100, 200]);
+              return POMODORO_FOCUS_SECS;
+            }
+          } else {
+            clearInterval(interval);
+            handleFinalSubmit();
+            return 0;
+          }
         }
         return t - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [timerMins, isLoading, sessionSaved]);
+  }, [timerMins, isLoading, sessionSaved, isPomodoro, pomodoroMode, handleFinalSubmit]);
 
   // ─── Submit handler ──────────────────────────────────────────────────────────
   const handleFinalSubmit = useCallback(async () => {
@@ -209,7 +226,7 @@ export function ExamPage() {
     const correctAnswersCount = answersData.filter(a => a.is_correct).length;
     const totalQ = questions.length;
     const scorePercentage = (correctAnswersCount / totalQ) * 100;
-    const timeTakenSeconds = timerMins * 60 - timeLeft;
+    const timeTakenSeconds = isPomodoro ? POMODORO_FOCUS_SECS - timeLeft : timerMins * 60 - timeLeft;
 
     try {
       if (profile) {
@@ -365,7 +382,7 @@ export function ExamPage() {
   const q = questions[current];
   const answeredCount = answers.filter(Boolean).length;
   const flaggedCount = statuses.filter(s => s === "flagged").length;
-  const isLowTime = timerMins > 0 && timeLeft < 120;
+  const isLowTime = (timerMins > 0 || isPomodoro) && timeLeft < 120 && pomodoroMode === "focus";
   const progress = ((current + 1) / questions.length) * 100;
   const optionLetters = ["A", "B", "C", "D"];
   const options = [q.option_a, q.option_b, q.option_c, q.option_d];
@@ -407,10 +424,13 @@ export function ExamPage() {
           <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono font-bold text-sm ${
             isLowTime
               ? "bg-[#EF4444]/20 border border-[#EF4444]/30 text-[#EF4444] animate-pulse"
+              : isPomodoro && pomodoroMode === "break"
+              ? "bg-[#22C55E]/20 border border-[#22C55E]/30 text-[#22C55E]"
               : "bg-[#1E293B] text-white"
           }`}>
-            <Clock size={14} className={isLowTime ? "text-[#EF4444]" : "text-[#60A5FA]"} />
-            {timerMins > 0 ? formatTime(timeLeft) : "∞"}
+            <Clock size={14} className={isLowTime ? "text-[#EF4444]" : isPomodoro && pomodoroMode === "break" ? "text-[#22C55E]" : "text-[#60A5FA]"} />
+            {(timerMins > 0 || isPomodoro) ? formatTime(timeLeft) : "∞"}
+            {isPomodoro && <span className="text-[10px] ml-1 uppercase">{pomodoroMode}</span>}
           </div>
 
           <div className="flex items-center gap-2">
@@ -745,6 +765,44 @@ export function ExamPage() {
                 className="w-full bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold py-3 rounded-xl transition-all"
               >
                 I Understand — Continue Exam
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Pomodoro Break Overlay */}
+      <AnimatePresence>
+        {isPomodoro && pomodoroMode === "break" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-[#08142D]/95 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.85, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="text-center"
+            >
+              <div className="w-20 h-20 rounded-full bg-[#22C55E]/20 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/20">
+                <Clock size={40} className="text-[#22C55E] animate-pulse" />
+              </div>
+              <h2 className="text-white font-extrabold text-3xl mb-3 font-['Manrope']">Break Time!</h2>
+              <p className="text-[#94A3B8] text-sm mb-8 max-w-sm mx-auto">
+                Step away from the screen, stretch, and grab a drink. Your exam is safely paused.
+              </p>
+              <div className="text-[5rem] font-black text-white font-mono leading-none tracking-tighter mb-8 drop-shadow-2xl">
+                {formatTime(timeLeft)}
+              </div>
+              <button
+                onClick={() => {
+                  setPomodoroMode("focus");
+                  setTimeLeft(POMODORO_FOCUS_SECS);
+                }}
+                className="bg-[#1E293B] hover:bg-[#334155] text-white border border-white/10 font-bold py-3 px-8 rounded-xl transition-all"
+              >
+                Skip Break
               </button>
             </motion.div>
           </motion.div>

@@ -1,12 +1,16 @@
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { motion } from "motion/react";
-import { Trophy, Clock, CheckCircle, XCircle, RotateCcw, Eye, Share2, TrendingUp, ThumbsUp, BookOpen, AlertTriangle, ChevronRight } from "lucide-react";
+import { Trophy, Clock, CheckCircle, XCircle, RotateCcw, Eye, Share2, TrendingUp, ThumbsUp, BookOpen, AlertTriangle, ChevronRight, Sparkles } from "lucide-react";
 import {
   RadialBarChart, RadialBar, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell
 } from "recharts";
+import { useAuth } from "../../contexts/AuthContext";
+import { getAIExamSummary } from "../../lib/ai";
 
 export function ResultsPage() {
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as {
@@ -93,6 +97,37 @@ export function ResultsPage() {
 
   const radialData = [{ value: percentage, fill: grade.color }];
 
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+
+  const generateSummary = async () => {
+    if (!profile?.is_premium) return;
+    setGeneratingSummary(true);
+    try {
+      const weakTopics = topicWiseBreakdown.filter(t => t.accuracy < 60).map(t => t.topic);
+      const strongTopics = topicWiseBreakdown.filter(t => t.accuracy >= 75).map(t => t.topic);
+      const summary = await getAIExamSummary({
+        subjectName,
+        scorePercentage: percentage,
+        correctCount: correct,
+        totalCount: total,
+        weakTopics,
+        strongTopics
+      });
+      setAiSummary(summary);
+    } catch (e) {
+      console.error("Failed to generate summary", e);
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
+
+  useEffect(() => {
+    if (profile?.is_premium && topicWiseBreakdown.length > 0) {
+      generateSummary();
+    }
+  }, [profile?.is_premium]);
+
   return (
     <div className="min-h-screen bg-[#08142D] px-4 py-6 sm:px-6 md:px-8">
       <div className="max-w-3xl mx-auto">
@@ -171,6 +206,36 @@ export function ResultsPage() {
             ))}
           </motion.div>
         </div>
+
+        {/* AI Performance Summary */}
+        {profile?.is_premium && (aiSummary || generatingSummary) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="bg-gradient-to-r from-[#2563EB]/10 to-[#7C3AED]/10 border border-[#2563EB]/30 rounded-2xl p-6 mb-6 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-20">
+              <Sparkles size={48} className="text-[#60A5FA]" />
+            </div>
+            <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+              <Sparkles size={18} className="text-[#60A5FA]" />
+              AI Performance Summary
+            </h3>
+            {generatingSummary ? (
+              <div className="flex items-center gap-3 text-[#64748B] text-sm py-2">
+                <div className="w-5 h-5 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+                Analyzing your exam performance...
+              </div>
+            ) : (
+              <div className="text-[#94A3B8] text-sm leading-relaxed space-y-3 relative z-10">
+                {aiSummary?.split('\n').map((paragraph, i) => (
+                  paragraph.trim() ? <p key={i}>{paragraph}</p> : null
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Subject breakdown chart */}
         {subjectBreakdown.length > 1 && (

@@ -104,3 +104,51 @@ ${rawText}
     throw new Error("Failed to extract questions. Please check your API key and try again.");
   }
 }
+
+/**
+ * Generates a personalized 2-paragraph summary of exam performance.
+ */
+export async function getAIExamSummary(params: {
+  subjectName: string;
+  scorePercentage: number;
+  correctCount: number;
+  totalCount: number;
+  weakTopics: string[];
+  strongTopics: string[];
+}): Promise<string> {
+  const prompt = `
+You are a supportive and highly intelligent UTME/JAMB/Post-UTME prep tutor.
+The student has just completed a mock exam for ${params.subjectName}.
+Their score was ${params.scorePercentage}% (${params.correctCount} out of ${params.totalCount} correct).
+Their strong topics are: ${params.strongTopics.join(", ") || "None identified yet"}.
+Their weak topics are: ${params.weakTopics.join(", ") || "None identified yet"}.
+
+Write a personalized, encouraging 2-paragraph summary of their performance.
+In the first paragraph, praise their effort and highlight their overall score and strong areas.
+In the second paragraph, gently point out their weak topics and give actionable advice on how to improve.
+Keep the tone professional, friendly, and motivating. DO NOT use Markdown bolding/headings, just plain text.
+  `;
+
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "You are an encouraging educational tutor."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      model: MODEL,
+      temperature: 0.7,
+    });
+
+    return chatCompletion.choices[0]?.message?.content?.trim() || "Great effort on your exam! Keep practicing to improve your scores.";
+  } catch (error) {
+    console.error("Error generating exam summary via Groq AI:", error);
+    throw new Error("Failed to generate AI summary.");
+  }
+}
+

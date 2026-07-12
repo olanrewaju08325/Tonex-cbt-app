@@ -261,7 +261,26 @@ export function CutOffMarksPage() {
         {/* List Content */}
         <div className="lg:col-span-8">
           <div className="bg-[#0F172A] border border-white/5 rounded-2xl shadow-xl overflow-hidden">
-            {isLoading ? (
+            {!profile?.is_premium ? (
+              <div className="p-12 text-center space-y-4 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-50" />
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#8B5CF6] flex items-center justify-center mb-2 shadow-lg shadow-blue-500/20">
+                    <Award className="text-white" size={32} />
+                  </div>
+                  <h3 className="text-white font-extrabold text-lg">Historical Cut-Off Marks Locked</h3>
+                  <p className="text-[#94A3B8] text-xs max-w-sm mx-auto mb-2 leading-relaxed">
+                    Gain a competitive edge by analyzing historical merit cut-off aggregates for your target department across multiple years.
+                  </p>
+                  <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-[#F59E0B] text-[10px] font-bold px-3 py-1 rounded-full mb-4">
+                    PREMIUM EXCLUSIVE
+                  </div>
+                  <button onClick={() => navigate("/premium")} className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-6 py-3 rounded-full text-xs font-bold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
+                    Upgrade to Premium <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            ) : isLoading ? (
               <div className="p-8 text-center text-[#64748B] text-xs">Loading Cutoff marks...</div>
             ) : filteredCutoffs.length === 0 ? (
               <div className="p-12 text-center space-y-2">

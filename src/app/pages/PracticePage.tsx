@@ -91,6 +91,7 @@ export function PracticePage() {
     subject: "",
     count: 40,
     timer: 30,
+    pomodoro: false,
   });
 
   const { data: dailyLimit, isLoading: limitLoading } = useDailyLimit(config.subject);
@@ -563,6 +564,42 @@ export function PracticePage() {
             </div>
           </motion.div>
 
+          {/* Study Technique */}
+          {mode === "practice" && (
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.45 }}
+              className="bg-[#0F172A] border border-white/6 rounded-2xl p-5"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-[#EC4899]/15 flex items-center justify-center">
+                  <Clock size={18} className="text-[#EC4899]" />
+                </div>
+                <div>
+                  <div className="text-white font-semibold text-sm">Study Technique</div>
+                  <div className="text-[#475569] text-xs">Enable structured study intervals</div>
+                </div>
+              </div>
+              <div
+                onClick={() => setConfig(c => ({ ...c, pomodoro: !c.pomodoro }))}
+                className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
+                  config.pomodoro ? "border-[#EC4899]/30 bg-[#EC4899]/5" : "border-white/6 bg-[#1E293B]/40 hover:border-white/10"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Clock size={18} className={config.pomodoro ? "text-[#EC4899]" : "text-[#64748B]"} />
+                  <div>
+                    <div className={`text-sm font-bold ${config.pomodoro ? "text-white" : "text-[#94A3B8]"}`}>
+                      Pomodoro Method
+                    </div>
+                    <div className="text-[#64748B] text-xs">25 mins focus + 5 mins break intervals</div>
+                  </div>
+                </div>
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${config.pomodoro ? "bg-[#EC4899]" : "bg-[#1E293B]"}`}>
+                  <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${config.pomodoro ? "translate-x-5" : "translate-x-0"}`} />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Summary + CTA */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
             <div className="bg-[#0F172A] border border-white/6 rounded-2xl p-5 mb-4">
@@ -572,7 +609,7 @@ export function PracticePage() {
                   { label: "Mode", value: mode === "exam" ? `Exam${proctored ? " (Proctored)" : ""}` : "Practice" },
                   { label: "Subject", value: subjects?.find(s => s.id === config.subject)?.name || "Not selected" },
                   { label: "Questions", value: `${config.count} questions` },
-                  { label: "Time Limit", value: config.timer === 0 ? "No limit" : `${config.timer} mins` },
+                  { label: "Time Limit", value: config.pomodoro ? "Pomodoro (25m/5m)" : config.timer === 0 ? "No limit" : `${config.timer} mins` },
                 ].map(item => (
                   <div key={item.label} className="bg-[#1E293B]/60 rounded-xl p-3">
                     <div className="text-[#475569] text-xs mb-0.5">{item.label}</div>
